@@ -1,0 +1,47 @@
+# Build outputs
+/build/
+*/build/
+*/build_*/
+*/tests/build/
+/cmake-build-*/
+/out/
+*.exe
+*.obj
+*.o
+*.pch
+*.ilk
+*.pdb
+
+# Arduino
+*.elf
+*.bin
+*.hex
+*.eep
+*.uf2
+*.map
+
+# CMake
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+compile_commands.json
+
+# IDE / editors
+.vs/
+.vscode/
+.idea/
+*.suo
+*.user
+*.sln
+*.vcxproj*
+*.code-workspace
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Python / packaging
+__pycache__/
+*.pyc

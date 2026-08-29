@@ -1,0 +1,181 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 890" width="1200" height="890" role="img"
+     aria-label="Connection map of the irTactile belt controller. Left column: host PC and USB-TTL logger feeding an ESP32 devkit. Middle column: a safety switch feeding three relay boards, four RS-485 to TTL line receivers, and a GP8413 DAC. Right column: the two AASD-15A drives' CN2 connector. Each row is one wire, labelled with the ESP32 pin on the left and the drive CN2 pin on the right.">
+  <style>
+    .bg      { fill: #ffffff; }
+    .wire    { fill: none; stroke: #4a4a4a; stroke-width: 1.7; }
+    .head    { fill: #4a4a4a; }
+    .box     { stroke-width: 1.6; }
+    .b-host  { fill: #eef1f5; stroke: #6b7a8d; }
+    .b-mcu   { fill: #e6eefb; stroke: #3a6ea8; }
+    .b-dac   { fill: #e4f4e9; stroke: #3d8b56; }
+    .b-drive { fill: #fbe9e7; stroke: #b8483a; }
+    .b-safe  { fill: #fdf0d9; stroke: #c08a12; }
+    .b-aux   { fill: #f2f2f0; stroke: #7a7a76; }
+    .b-note  { fill: none; stroke: #a5a59c; stroke-width: 1.2; stroke-dasharray: 4 3; }
+    .t       { fill: #17170f; font-family: "Segoe UI", Helvetica, Arial, sans-serif; }
+    .h1      { font-size: 15px; font-weight: 600; }
+    .h2      { font-size: 12.5px; font-weight: 600; }
+    .h3      { font-size: 11.5px; font-weight: 600; }
+    .pin     { font-size: 11px; font-weight: 600; fill: #2c2c26; }
+    .sub     { font-size: 10.5px; fill: #55554e; }
+    .tiny    { font-size: 9.5px; fill: #6a6a62; }
+    @media (prefers-color-scheme: dark) {
+      .bg      { fill: #17170f; }
+      .wire    { stroke: #a8a89e; }
+      .head    { fill: #a8a89e; }
+      .b-host  { fill: #23262b; stroke: #8896a6; }
+      .b-mcu   { fill: #1b2838; stroke: #6ea0d8; }
+      .b-dac   { fill: #172c1f; stroke: #63b57e; }
+      .b-drive { fill: #331d1a; stroke: #d97a68; }
+      .b-safe  { fill: #322813; stroke: #d9ac3c; }
+      .b-aux   { fill: #26261f; stroke: #8f8f86; }
+      .b-note  { stroke: #6f6f66; }
+      .t       { fill: #f0eee6; }
+      .pin     { fill: #ded9cb; }
+      .sub     { fill: #b0aea4; }
+      .tiny    { fill: #97958c; }
+    }
+  </style>
+
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path class="head" d="M 0 0 L 10 5 L 0 10 z"/>
+    </marker>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="890"/>
+
+  <!-- ═══ host side ═══ -->
+  <rect class="box b-host" x="40" y="40" width="150" height="56" rx="5"/>
+  <text class="t h2"  x="115" y="64" text-anchor="middle">host PC</text>
+  <text class="t sub" x="115" y="82" text-anchor="middle">host-bridge</text>
+
+  <rect class="box b-host" x="40" y="128" width="150" height="56" rx="5"/>
+  <text class="t h2"  x="115" y="152" text-anchor="middle">USB-TTL logger</text>
+  <text class="t sub" x="115" y="170" text-anchor="middle">or 2nd ESP32</text>
+
+  <path class="wire" marker-end="url(#a)" d="M 190 68 L 345 68 L 345 210"/>
+  <text class="t sub" x="200" y="60">USB / CH340 · 1.2 Mbaud</text>
+  <text class="t sub" x="200" y="86">host → device only</text>
+
+  <path class="wire" marker-end="url(#a)" d="M 290 210 L 290 156 L 190 156"/>
+  <text class="t sub" x="200" y="148">115 200 · log only</text>
+
+  <!-- ═══ ESP32 ═══ -->
+  <rect class="box b-mcu" x="250" y="210" width="190" height="580" rx="6"/>
+  <text class="t h1" x="345" y="236" text-anchor="middle">ESP32 devkit</text>
+
+  <text class="t pin" x="428" y="250" text-anchor="end">3V3</text>
+  <text class="t pin" x="428" y="306" text-anchor="end">GPIO 19</text>
+  <text class="t pin" x="428" y="358" text-anchor="end">GPIO 25</text>
+  <text class="t pin" x="428" y="410" text-anchor="end">GPIO 13</text>
+  <text class="t pin" x="428" y="452" text-anchor="end">5 V</text>
+  <text class="t pin" x="428" y="490" text-anchor="end">GPIO 4</text>
+  <text class="t pin" x="428" y="526" text-anchor="end">GPIO 5</text>
+  <text class="t pin" x="428" y="562" text-anchor="end">GPIO 26</text>
+  <text class="t pin" x="428" y="598" text-anchor="end">GPIO 27</text>
+  <text class="t pin" x="428" y="634" text-anchor="end">GND</text>
+  <text class="t pin" x="428" y="714" text-anchor="end">GPIO 21/22</text>
+  <text class="t pin" x="262" y="713">GPIO 18</text>
+  <text class="t pin" x="262" y="771">GPIO 14</text>
+
+  <!-- ═══ safety switch + relay stack ═══ -->
+  <rect class="box b-safe" x="520" y="224" width="180" height="44" rx="5"/>
+  <text class="t h2"   x="610" y="242" text-anchor="middle">safety switch</text>
+  <text class="t tiny" x="610" y="258" text-anchor="middle">3.3 V to relay inputs · §4</text>
+
+  <rect class="box b-aux" x="520" y="284" width="180" height="36" rx="4"/>
+  <text class="t h3"   x="610" y="300" text-anchor="middle">relay 3</text>
+  <text class="t tiny" x="610" y="314" text-anchor="middle">IN tied to GND</text>
+
+  <rect class="box b-aux" x="520" y="336" width="180" height="36" rx="4"/>
+  <text class="t h3" x="610" y="359" text-anchor="middle">relay 1</text>
+
+  <rect class="box b-aux" x="520" y="388" width="180" height="36" rx="4"/>
+  <text class="t h3" x="610" y="411" text-anchor="middle">relay 2</text>
+
+  <path class="wire" d="M 610 268 L 610 284"/>
+  <path class="wire" d="M 610 320 L 610 336"/>
+  <path class="wire" d="M 610 372 L 610 388"/>
+  <text class="t tiny" x="618" y="331">3.3 V</text>
+  <text class="t tiny" x="618" y="383">3.3 V</text>
+
+  <!-- ═══ RS-485 to TTL receivers ═══ -->
+  <rect class="box b-aux" x="520" y="470" width="180" height="32" rx="4"/>
+  <text class="t h3" x="610" y="490" text-anchor="middle">RS-485→TTL 1</text>
+  <rect class="box b-aux" x="520" y="506" width="180" height="32" rx="4"/>
+  <text class="t h3" x="610" y="526" text-anchor="middle">RS-485→TTL 2</text>
+  <rect class="box b-aux" x="520" y="542" width="180" height="32" rx="4"/>
+  <text class="t h3" x="610" y="562" text-anchor="middle">RS-485→TTL 3</text>
+  <rect class="box b-aux" x="520" y="578" width="180" height="32" rx="4"/>
+  <text class="t h3" x="610" y="598" text-anchor="middle">RS-485→TTL 4</text>
+
+  <!-- ═══ DAC ═══ -->
+  <rect class="box b-dac" x="520" y="660" width="180" height="100" rx="6"/>
+  <text class="t h1"  x="610" y="686" text-anchor="middle">GP8413 DAC</text>
+  <text class="t sub" x="610" y="704" text-anchor="middle">dual 15-bit · 0x58</text>
+  <text class="t sub" x="610" y="721" text-anchor="middle">0–10 V both channels</text>
+
+  <!-- ═══ drives ═══ -->
+  <rect class="box b-drive" x="830" y="210" width="310" height="570" rx="6"/>
+  <text class="t h1"  x="985" y="238" text-anchor="middle">2× AASD-15A servo drives</text>
+  <text class="t sub" x="985" y="256" text-anchor="middle">CN2 control connector · §9</text>
+
+  <text class="t pin" x="845" y="358">#1 · CN2 6 — SRV-ON</text>
+  <text class="t pin" x="845" y="410">#2 · CN2 6 — SRV-ON</text>
+  <text class="t pin" x="845" y="452">both · CN2 9 — opto common (+)</text>
+  <text class="t pin" x="845" y="490">#1 · CN2 20/19 — PA±</text>
+  <text class="t pin" x="845" y="526">#1 · CN2 18/17 — PB±</text>
+  <text class="t pin" x="845" y="562">#2 · CN2 20/19 — PA±</text>
+  <text class="t pin" x="845" y="598">#2 · CN2 18/17 — PB±</text>
+  <text class="t pin" x="845" y="634">both · CN2 16 — DGND · §5</text>
+  <text class="t pin" x="845" y="678">#1 · CN2 25 — Vref · §3</text>
+  <text class="t pin" x="845" y="709">#2 · CN2 25 — Vref</text>
+  <text class="t pin" x="845" y="740">both · CN2 13 — AGND, star</text>
+
+  <!-- ═══ wires ═══ -->
+  <path class="wire" marker-end="url(#a)" d="M 440 246 L 520 246"/>
+  <path class="wire" marker-end="url(#a)" d="M 520 302 L 440 302"/>
+  <path class="wire" marker-end="url(#a)" d="M 440 354 L 520 354"/>
+  <path class="wire" marker-end="url(#a)" d="M 700 354 L 830 354"/>
+  <path class="wire" marker-end="url(#a)" d="M 440 406 L 520 406"/>
+  <path class="wire" marker-end="url(#a)" d="M 700 406 L 830 406"/>
+  <path class="wire" marker-end="url(#a)" d="M 440 448 L 830 448"/>
+
+  <path class="wire" marker-end="url(#a)" d="M 830 486 L 700 486"/>
+  <path class="wire" marker-end="url(#a)" d="M 520 486 L 440 486"/>
+  <path class="wire" marker-end="url(#a)" d="M 830 522 L 700 522"/>
+  <path class="wire" marker-end="url(#a)" d="M 520 522 L 440 522"/>
+  <path class="wire" marker-end="url(#a)" d="M 830 558 L 700 558"/>
+  <path class="wire" marker-end="url(#a)" d="M 520 558 L 440 558"/>
+  <path class="wire" marker-end="url(#a)" d="M 830 594 L 700 594"/>
+  <path class="wire" marker-end="url(#a)" d="M 520 594 L 440 594"/>
+  <path class="wire" marker-end="url(#a)" d="M 830 630 L 440 630"/>
+
+  <path class="wire" marker-end="url(#a)" d="M 440 710 L 520 710"/>
+  <path class="wire" marker-end="url(#a)" d="M 700 674 L 830 674"/>
+  <path class="wire" marker-end="url(#a)" d="M 700 705 L 830 705"/>
+  <path class="wire" marker-end="url(#a)" d="M 700 736 L 830 736"/>
+  <text class="t sub" x="708" y="668">VOUT0</text>
+  <text class="t sub" x="708" y="699">VOUT1</text>
+  <text class="t sub" x="708" y="730">DAC GND</text>
+  <text class="t sub" x="450" y="704">I²C · 1 MHz</text>
+
+  <!-- ═══ local to the ESP32 ═══ -->
+  <rect class="box b-aux" x="40" y="684" width="170" height="50" rx="5"/>
+  <text class="t h3"   x="125" y="705" text-anchor="middle">mode / init button</text>
+  <text class="t tiny" x="125" y="722" text-anchor="middle">momentary, to GND · §6</text>
+  <path class="wire" marker-end="url(#a)" d="M 210 709 L 250 709"/>
+
+  <rect class="box b-aux" x="40" y="744" width="170" height="46" rx="5"/>
+  <text class="t h3"   x="125" y="764" text-anchor="middle">scope trigger</text>
+  <text class="t tiny" x="125" y="780" text-anchor="middle">test point, never toggled</text>
+  <path class="wire" marker-end="url(#a)" d="M 250 767 L 210 767"/>
+
+  <!-- ═══ drive power / motor ═══ -->
+  <rect class="b-note" x="830" y="800" width="310" height="76" rx="5"/>
+  <text class="t h3"  x="845" y="820">Each drive also has</text>
+  <text class="t sub" x="845" y="838">L1 / L2 / L3 + PE ← 220 V mains via filter</text>
+  <text class="t sub" x="845" y="854">U / V / W + PE → servo motor</text>
+  <text class="t sub" x="845" y="870">CN3 ↔ motor encoder (factory cable)</text>
+</svg>
