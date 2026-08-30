@@ -4,6 +4,12 @@
 #include <stdint.h>
 #include "SampleRing.h"
 
+// Fixed-point notation, used in both forms below. Qn is n fractional bits and
+// no integer part: value = raw / 2^n. The gains and the smoother state are Q16,
+// so GAIN_ONE (65536) is 1.0. Qi.f spells out both halves: m_phase is Q16.16, a
+// sample index in the high 16 bits and the position within that sample in the
+// low 16, so PHASE_ONE (0x10000) is one whole sample.
+
 // The DAC tick is fixed; the stream rate is an internal resampling ratio, so a
 // rate change needs no timer restart and no I2C duty change.
 //
@@ -192,6 +198,22 @@ public:
       m_gain = (m_gain > GAIN_STEP) ? m_gain - GAIN_STEP : 0;
     }
 
+    // The encoder floor's own gain: as m_gain above, except that a floor hold
+    // (see setFloorHold) keeps it up through an underrun. The fault mute still
+    // wins over the hold. m_gain itself is never held - m_cur holds its last
+    // sample when starved, so holding it would park a DC offset.
+    //
+    // With no hold active floorTarget == targetGain every tick, so
+    // floorGainQ16() == gainQ16().
+    const uint32_t floorTarget =
+      m_muted ? 0
+              : ((m_floorHold || m_underrunTicks < UNDERRUN_SILENCE_TICKS) ? GAIN_ONE : 0);
+    if (m_floorGain < floorTarget) {
+      m_floorGain = (m_floorGain + GAIN_STEP > GAIN_ONE) ? GAIN_ONE : m_floorGain + GAIN_STEP;
+    } else if (m_floorGain > floorTarget) {
+      m_floorGain = (m_floorGain > GAIN_STEP) ? m_floorGain - GAIN_STEP : 0;
+    }
+
     uint32_t out0 = ((uint32_t)(m_cur.ch0 & 0x7FFF) * m_gain) >> 16;
     uint32_t out1 = ((uint32_t)(m_cur.ch1 & 0x7FFF) * m_gain) >> 16;
 
@@ -252,12 +274,23 @@ public:
   void setMuted(bool muted) { m_muted = muted; }
   bool muted() const { return m_muted; }
 
+  // Hold the encoder floor's gain up without a sample stream. dacTask asserts
+  // this while belt-tune's tuning headers keep arriving and clears it when they
+  // stop; the floor then ramps down over the same 50 ms as a dead host. The
+  // stream gain is unaffected.
+  void setFloorHold(bool hold) { m_floorHold = hold; }
+
   // Current ramp gain, Q16. Exposed so a caller that adds its own contribution
   // to the output *after* tick() - the encoder-derived preload floor in
   // processData() - can scale it by the same gain. Applying the gain to each
   // term is equivalent to applying it to the combined value, since
   // max(g*a, g*b) == g*max(a, b), so the stream is not gained twice.
   uint32_t gainQ16() const { return m_gain; }
+
+  // The gain the encoder-derived floor is scaled by, used by processData().
+  // Equal to gainQ16() every tick unless a floor hold is active, in which case
+  // it stays up while the stream gain ramps down.
+  uint32_t floorGainQ16() const { return m_floorGain; }
 
   uint16_t targetMin() const { return m_targetMin; }
   int32_t corrPpm() const { return m_corrPpm; }
@@ -305,7 +338,9 @@ private:
 
   uint32_t m_underrunTicks = 0;
   uint32_t m_gain = GAIN_ONE;    // Q16, drives the silence ramp
+  uint32_t m_floorGain = GAIN_ONE;  // Q16, the floor's ramp - held up during tuning
   bool m_muted = false;          // external fault mute, same ramp
+  bool m_floorHold = false;      // tuning hold: keep m_floorGain up without a stream
 
 #if ENABLE_SMOOTHER
   int32_t m_sm0 = 0, m_sm1 = 0;  // Q16 one-pole state

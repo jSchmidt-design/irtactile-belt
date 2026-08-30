@@ -8,13 +8,14 @@
 #include <cstdint>
 
 #include "WrapTracker.h"
+#include "ForceCurve.h"
 
 static int g_fail = 0;
 #define CHECK(cond) do { if (!(cond)) { printf("  FAIL %s:%d  %s\n", __FILE__, __LINE__, #cond); g_fail++; } } while (0)
 
-// mapTo15bit()'s saturation point, from irtactile-belt.ino: 3*c*32767/20000.
-// Duplicated because the .ino cannot be compiled off-target; keep in sync.
-static const int32_t FULL_SCALE_COUNTS = 6667;
+// The force curve's default saturation point, taken from ForceCurve.h rather
+// than hand-duplicated.
+static const int32_t FULL_SCALE_COUNTS = DEFAULT_FULL_SCALE_COUNTS;
 
 struct PcntModel {
     int32_t raw = 0;    // the 16 bit hardware register

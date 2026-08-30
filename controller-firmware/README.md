@@ -86,6 +86,14 @@ mid-session re-acquires within one header interval. Rates above the 6 kHz DAC
 tick are rejected as a bad header, and the decoder re-syncs on the next good
 one.
 
+A second header type (`0x02`) carries the encoder force-curve parameters —
+full-scale pull count and gamma — from the separate `belt-tune` tool. While
+those headers are arriving the firmware holds the encoder floor gain up (there
+is no sample stream to feed the playout), on a refreshed ~250 ms deadline that
+lapses on its own when they stop. Both values are clamped in the firmware
+(`ForceCurve.h`) on the wire and on the persistence-load path, and committed to
+NVS only on a safety-switch trip (the entry to `INACTIVE`).
+
 ## Playout and drift lock
 
 `Playout.h` resamples the stream onto the fixed 6 kHz tick with a zero-order
@@ -133,15 +141,16 @@ states reboots the board; the bridge suppresses them.
 
 ## Tests
 
-The protocol, playout and counter-wrap logic are plain C++ headers with no
-Arduino dependency, so they are tested natively; no board involved. Needs
-MSVC; the script locates it via `vswhere`.
+The protocol, playout, counter-wrap and force-curve logic are plain C++ headers
+with no Arduino dependency, so they are tested natively; no board involved.
+Needs MSVC; the script locates it via `vswhere`.
 
 ```
 test.bat            build and run all suites
 test.bat decoder    protocol/framing only
 test.bat playout    resampling and drift lock only
 test.bat counter    encoder counter wrap handling only
+test.bat forcecurve encoder force curve (full-scale count + gamma) only
 ```
 
 ## Reading the log
@@ -189,9 +198,10 @@ the bus, and the unit is halted with the drives released until a power cycle.
 | `src/irtactile-belt/Pins.h` | every GPIO the sketch claims |
 | `src/irtactile-belt/BeltState.h` | arming state machine: safety switch, mode button, preload |
 | `src/irtactile-belt/Logging.h` | the log lines, and the seqlock the stats cross on |
-| `src/irtactile-belt/SerialDecoder.h` | wire protocol: marker, header, data frames |
+| `src/irtactile-belt/SerialDecoder.h` | wire protocol: marker, header (rate + tuning), data frames |
 | `src/irtactile-belt/SampleRing.h` | lock-free SPSC ring, 512 × 4 B |
-| `src/irtactile-belt/Playout.h` | ZOH resampler, drift lock, silence ramp |
+| `src/irtactile-belt/Playout.h` | ZOH resampler, drift lock, silence ramp, tuning floor hold |
+| `src/irtactile-belt/ForceCurve.h` | runtime encoder force curve: full-scale count + gamma LUT |
 | `src/irtactile-belt/GP8413_DAC.h` | DAC driver over I²C |
 | `src/irtactile-belt/Counter.h` | quadrature encoder counters (PCNT) |
 | `src/irtactile-belt/WrapTracker.h` | folds PCNT wraps back into a usable displacement |

@@ -1,0 +1,1720 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IRTactile Belt Wiring</title>
+<meta name="description" content="Visual wiring reference for the irtactile-belt controller: ESP32 to two AASD-15A servo drives.">
+<style>
+:root{
+  --paper:#E8EBED; --plate:#FAFBFB; --plate-2:#F1F3F4; --plate-3:#E4E9EC;
+  --ink:#141C22; --ink-2:#48545C; --muted:#7C8992;
+  --rule:#C6CFD5; --rule-2:#DDE3E7;
+  --en:#C4362B; --an:#1F6FB2; --enc:#0E7A5B; --ser:#48545C;
+  --en-bg:#F6E3E0; --an-bg:#E0EBF5; --enc-bg:#DBEEE7;
+  --tbd:#8A5A0B; --tbd-bg:#F1E8D6; --tbd-rule:#D9C79C;
+  --cond:"Arial Narrow","Helvetica Neue Condensed","Roboto Condensed","Liberation Sans Narrow","Nimbus Sans Narrow",Arial,sans-serif;
+  --body:Charter,"Bitstream Charter","Iowan Old Style","Sitka Text",Georgia,"Times New Roman",serif;
+  --mono:ui-monospace,"Cascadia Mono","SFMono-Regular",Consolas,"DejaVu Sans Mono",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1418; --plate:#161D23; --plate-2:#1B242B; --plate-3:#212B33;
+    --ink:#DDE4E8; --ink-2:#A3B0B9; --muted:#76858E;
+    --rule:#2C363E; --rule-2:#232C33;
+    --en:#D9584E; --an:#4A93CE; --enc:#28A075; --ser:#A3B0B9;
+    --en-bg:#2C1D1B; --an-bg:#152531; --enc-bg:#112720;
+    --tbd:#D2A24A; --tbd-bg:#2A2417; --tbd-rule:#4A3F24;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1418; --plate:#161D23; --plate-2:#1B242B; --plate-3:#212B33;
+  --ink:#DDE4E8; --ink-2:#A3B0B9; --muted:#76858E;
+  --rule:#2C363E; --rule-2:#232C33;
+  --en:#D9584E; --an:#4A93CE; --enc:#28A075; --ser:#A3B0B9;
+  --en-bg:#2C1D1B; --an-bg:#152531; --enc-bg:#112720;
+  --tbd:#D2A24A; --tbd-bg:#2A2417; --tbd-rule:#4A3F24;
+}
+
+*{box-sizing:border-box}
+body{
+  background:var(--paper); color:var(--ink);
+  font-family:var(--body); font-size:16.5px; line-height:1.62;
+  margin:0; padding:0 0 90px;
+  -webkit-font-smoothing:antialiased;
+}
+.sheet{max-width:1180px;margin:0 auto;padding:0 22px}
+p{margin:0 0 .9em;max-width:66ch}
+a{color:inherit;text-decoration:none;border-bottom:1px solid var(--rule)}
+a:focus-visible,button:focus-visible{outline:2px solid var(--an);outline-offset:3px;border-radius:2px}
+
+/* ---- title block ---- */
+.titleblock{
+  border-bottom:2px solid var(--ink); margin-top:34px; padding-bottom:16px;
+  display:grid; grid-template-columns:1fr auto; gap:18px 26px; align-items:end;
+}
+.eyebrow{
+  font-family:var(--mono); font-size:11px; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--muted); margin:0 0 10px;
+}
+h1{
+  font-family:var(--cond); font-weight:700; text-transform:uppercase; letter-spacing:.03em;
+  font-size:clamp(38px,7vw,68px); line-height:.94; margin:0; text-wrap:balance;
+}
+.lede{color:var(--ink-2);font-size:17px;margin:14px 0 0;max-width:60ch}
+.tb-meta{
+  font-family:var(--mono); font-size:11px; line-height:1.9; color:var(--muted);
+  border-left:1px solid var(--rule); padding-left:16px; min-width:200px;
+}
+.tb-meta b{color:var(--ink);font-weight:600;display:block;letter-spacing:.02em}
+
+/* ---- nav ---- */
+nav{
+  position:sticky; top:0; z-index:20; background:var(--paper);
+  border-bottom:1px solid var(--rule); margin-bottom:6px;
+}
+nav ol{
+  list-style:none; margin:0; padding:9px 0; display:flex; gap:4px; overflow-x:auto;
+  font-family:var(--cond); text-transform:uppercase; letter-spacing:.07em; font-size:13px;
+}
+nav a{
+  border:0; white-space:nowrap; padding:4px 9px; color:var(--muted); display:block; border-radius:2px;
+}
+nav a:hover{color:var(--ink);background:var(--plate-2)}
+nav a[aria-current="true"]{color:var(--ink);background:var(--plate-3)}
+nav .n{font-family:var(--mono);font-size:10px;letter-spacing:0;opacity:.7;margin-right:5px}
+
+/* ---- legend / signal filter ---- */
+.legend{
+  display:flex; flex-wrap:wrap; gap:8px; align-items:center;
+  padding:12px 0 0; margin:0 0 4px;
+}
+.legend .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted);margin-right:4px}
+.chip{
+  font-family:var(--mono); font-size:11.5px; letter-spacing:.02em;
+  border:1px solid var(--rule); background:var(--plate); color:var(--ink-2);
+  padding:5px 11px 5px 8px; border-radius:2px; cursor:pointer; display:inline-flex; align-items:center; gap:7px;
+}
+.chip .sw{width:16px;height:3px;border-radius:2px;display:inline-block}
+.chip[aria-pressed="true"]{background:var(--plate-3);color:var(--ink);border-color:var(--ink-2)}
+.chip.c-en .sw{background:var(--en)} .chip.c-an .sw{background:var(--an)}
+.chip.c-enc .sw{background:var(--enc)} .chip.c-ser .sw{background:var(--ser)}
+
+/* ---- plates ---- */
+section{padding-top:46px;scroll-margin-top:58px}
+.plate-head{
+  display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;
+  border-bottom:2px solid var(--ink); padding-bottom:7px; margin-bottom:2px;
+}
+.plate-head::after{content:"";display:block;width:100%;height:1px;background:var(--rule);margin-top:7px;margin-bottom:-9px}
+.plate-no{font-family:var(--mono);font-size:12px;color:var(--muted);letter-spacing:.06em}
+.plate-head h2{
+  font-family:var(--cond); text-transform:uppercase; letter-spacing:.045em; font-weight:700;
+  font-size:clamp(21px,3vw,30px); margin:0; flex:1;
+}
+.plate-src{font-family:var(--mono);font-size:10.5px;color:var(--muted);letter-spacing:.05em}
+section > p:first-of-type{margin-top:18px}
+
+/* ---- figure ---- */
+figure{
+  margin:22px 0 8px; background:var(--plate); border:1px solid var(--rule);
+  padding:20px 18px 12px; position:relative;
+}
+figure::before,figure::after{
+  content:"";position:absolute;width:9px;height:9px;border:1px solid var(--ink-2);opacity:.5;
+}
+figure::before{top:6px;left:6px;border-right:0;border-bottom:0}
+figure::after{bottom:6px;right:6px;border-left:0;border-top:0}
+figcaption{
+  font-family:var(--mono); font-size:11.5px; line-height:1.6; color:var(--muted);
+  border-top:1px solid var(--rule-2); margin-top:14px; padding-top:10px; max-width:none;
+}
+figcaption b{color:var(--ink-2);font-weight:600}
+.fig-scroll{overflow-x:auto}
+.dg{display:block;width:100%;height:auto;min-width:0}
+.dg-wide{min-width:760px}
+
+/* svg typography */
+.dg text{font-family:var(--mono);font-size:11px;fill:var(--ink-2)}
+.dg .t-title{font-family:var(--cond);font-size:14px;font-weight:700;letter-spacing:.07em;fill:var(--ink)}
+.dg .t-sub{font-size:9.5px;fill:var(--muted)}
+.dg .t-pin{font-size:9.5px;fill:var(--ink-2)}
+.dg .t-edge{font-size:9.5px;fill:var(--ink-2)}
+.dg .t-note{font-size:9.5px;fill:var(--muted);font-style:italic}
+.dg .box{fill:var(--plate-2);stroke:var(--rule);stroke-width:1.5}
+.dg .box-o{fill:none;stroke:var(--rule);stroke-width:1.5;stroke-dasharray:4 4}
+.dg .wire{fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.dg .w-ser{stroke:var(--ser)} .dg .w-en{stroke:var(--en)}
+.dg .w-an{stroke:var(--an)} .dg .w-enc{stroke:var(--enc)}
+.dg .thin{stroke-width:1.25}
+.dg .pinnum text{font-family:var(--mono);font-size:8px;fill:var(--muted)}
+.dg .pinnum-on text{font-family:var(--mono);font-size:8px;font-weight:700;fill:var(--plate)}
+.dg .dash{stroke-dasharray:5 4}
+
+/* signal focus filter */
+.sig{transition:opacity .16s ease}
+body[data-focus] .sig{opacity:.13}
+body[data-focus="en"] .sig.s-en,
+body[data-focus="an"] .sig.s-an,
+body[data-focus="enc"] .sig.s-enc,
+body[data-focus="ser"] .sig.s-ser{opacity:1}
+@media (prefers-reduced-motion:reduce){.sig{transition:none}}
+
+/* ---- tables ---- */
+.tw{overflow-x:auto;margin:20px 0}
+table{border-collapse:collapse;width:100%;font-size:14px;font-variant-numeric:tabular-nums}
+caption{
+  font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);text-align:left;padding-bottom:8px;
+}
+th,td{text-align:left;padding:7px 12px 7px 0;border-bottom:1px solid var(--rule-2);vertical-align:top}
+thead th{
+  font-family:var(--cond);text-transform:uppercase;letter-spacing:.07em;font-size:12.5px;
+  color:var(--ink);border-bottom:1.5px solid var(--ink-2);white-space:nowrap;
+}
+tbody tr:hover{background:var(--plate-2)}
+td.m,th.m,.m{font-family:var(--mono);font-size:12.5px;white-space:nowrap}
+td.n{text-align:right;font-family:var(--mono);font-size:12.5px;padding-right:20px}
+th.n{text-align:right;padding-right:20px}
+.used{font-weight:700;color:var(--ink)}
+.dim{color:var(--muted)}
+
+/* pin dot */
+.pd{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:7px;vertical-align:1px}
+.pd-en{background:var(--en)} .pd-an{background:var(--an)}
+.pd-enc{background:var(--enc)} .pd-ser{background:var(--ser)}
+.pd-no{border:1px solid var(--rule);background:transparent}
+
+/* ---- callouts ---- */
+.note{
+  border-left:3px solid var(--ink-2); background:var(--plate); padding:14px 18px;
+  margin:20px 0; font-size:15.5px;
+}
+.note p:last-child{margin-bottom:0}
+.note .h{
+  font-family:var(--cond);text-transform:uppercase;letter-spacing:.07em;font-weight:700;
+  font-size:13px;display:block;margin-bottom:4px;color:var(--ink);
+}
+.note.warn{border-left-color:var(--en);background:var(--en-bg)}
+.note.tbd{border-left-color:var(--tbd);background:var(--tbd-bg)}
+.note.tbd .h{color:var(--tbd)}
+code,kbd{font-family:var(--mono);font-size:.88em;background:var(--plate-3);padding:1px 5px;border-radius:2px}
+
+/* ---- open items ---- */
+.oi{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px;margin:22px 0}
+.oi-card{border:1px solid var(--tbd-rule);background:var(--plate);padding:14px 16px}
+.oi-card h3{
+  font-family:var(--cond);text-transform:uppercase;letter-spacing:.06em;font-size:14px;
+  margin:0 0 8px;display:flex;justify-content:space-between;gap:10px;align-items:baseline;
+}
+.oi-card h3 span{font-family:var(--mono);font-size:10.5px;color:var(--tbd);letter-spacing:.04em}
+.oi-card ul{margin:0;padding-left:17px;font-size:14.5px;line-height:1.5}
+.oi-card li{margin-bottom:6px}
+.oi-card li::marker{color:var(--tbd)}
+
+footer{
+  margin-top:60px;border-top:1px solid var(--rule);padding-top:16px;
+  font-family:var(--mono);font-size:11px;color:var(--muted);line-height:1.9;
+}
+@media (max-width:720px){
+  .titleblock{grid-template-columns:1fr}
+  .tb-meta{border-left:0;padding-left:0;border-top:1px solid var(--rule);padding-top:12px}
+  body{font-size:16px}
+}
+</style>
+</head>
+<body>
+<svg class="defs-only" width="0" height="0" aria-hidden="true" focusable="false" style="position:absolute">
+<defs>
+<marker id="ah-ser" viewBox="0 0 10 10" refX="9.2" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="var(--ser)"/></marker>
+<marker id="ah-en" viewBox="0 0 10 10" refX="9.2" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="var(--en)"/></marker>
+<marker id="ah-an" viewBox="0 0 10 10" refX="9.2" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="var(--an)"/></marker>
+<marker id="ah-enc" viewBox="0 0 10 10" refX="9.2" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 Z" fill="var(--enc)"/></marker>
+</defs>
+</svg>
+
+<div class="sheet">
+
+<header class="titleblock">
+  <div>
+    <p class="eyebrow">irtactile-belt &middot; docs/hardware/wiring.md &middot; branch v1</p>
+    <h1>Belt Wiring<br>Plates</h1>
+    <p class="lede">An ESP32 devkit driving two AASD-15A servo drives through a dual DAC, a
+    three-relay enable bank and four differential line receivers. Every ESP32-side value here is
+    read out of the firmware; drive-side terminal numbers come from the manufacturer diagram.</p>
+  </div>
+  <div class="tb-meta">
+    <b>CONTROLLER</b>ESP32 devkit, CH340
+    <b>DRIVES</b>2 &times; AASD-15A
+    <b>DAC</b>GP8413, I&sup2;C 0x58
+    <b>TICK</b>6 kHz playout
+    <b>OPEN ITEMS</b>30 TBD
+  </div>
+</header>
+
+</div>
+
+<nav>
+  <div class="sheet">
+    <ol>
+      <li><a href="#topology"><span class="n">01</span>Topology</a></li>
+      <li><a href="#pins"><span class="n">02</span>ESP32 pins</a></li>
+      <li><a href="#torque"><span class="n">03</span>Torque command</a></li>
+      <li><a href="#enable"><span class="n">04</span>Enable &amp; safety</a></li>
+      <li><a href="#opto"><span class="n">05</span>Drive input</a></li>
+      <li><a href="#encoder"><span class="n">06</span>Encoder</a></li>
+      <li><a href="#states"><span class="n">07</span>States</a></li>
+      <li><a href="#scaling"><span class="n">08</span>Scaling</a></li>
+      <li><a href="#cn2"><span class="n">09</span>CN2</a></li>
+      <li><a href="#power"><span class="n">10</span>Power</a></li>
+      <li><a href="#open"><span class="n">&mdash;</span>Open items</a></li>
+    </ol>
+  </div>
+</nav>
+
+<div class="sheet">
+  <div class="legend">
+    <span class="lbl">Signal classes &mdash; click to trace</span>
+    <button class="chip c-en" data-sig="en" aria-pressed="false"><span class="sw"></span>Enable &amp; safety</button>
+    <button class="chip c-an" data-sig="an" aria-pressed="false"><span class="sw"></span>Analog command</button>
+    <button class="chip c-enc" data-sig="enc" aria-pressed="false"><span class="sw"></span>Encoder feedback</button>
+    <button class="chip c-ser" data-sig="ser" aria-pressed="false"><span class="sw"></span>Serial, panel &amp; power</button>
+  </div>
+</div>
+
+<main class="sheet">
+<section id="topology">
+  <div class="plate-head">
+    <span class="plate-no">Plate 01</span>
+    <h2>Control topology</h2>
+    <span class="plate-src">wiring.md &sect;intro</span>
+  </div>
+
+  <p>Five subsystems. The host only ever writes; the ESP32 only ever logs back on a separate
+  wire. Everything the ESP32 commands leaves through the interface column in the middle &mdash; a
+  relay bank for the enables, a DAC for the torque command &mdash; and the only thing that comes
+  back from the drives is the encoder pair, through four line receivers.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg class="dg dg-wide" viewBox="0 0 1140 575" role="img"
+      aria-label="Control topology: host PC writes to the ESP32 over USB at 1.2 Mbaud; the ESP32 logs out to a USB-TTL adapter, drives a three-relay bank fed through the safety switch, drives a GP8413 DAC over I2C, and receives four encoder phases through RS-485 receivers. The relay bank closes SRV-ON on each drive, the DAC feeds each drive's Vref, and each drive returns PA and PB differential pairs.">
+
+      <!-- host / logger -->
+      <g class="sig s-ser">
+        <rect class="box" x="16" y="80" width="140" height="60" rx="2"/>
+        <text class="t-title" x="28" y="104">HOST PC</text>
+        <text class="t-sub" x="28" y="122">host-bridge</text>
+
+        <rect class="box" x="16" y="200" width="140" height="60" rx="2"/>
+        <text class="t-title" x="28" y="224">USB-TTL</text>
+        <text class="t-sub" x="28" y="242">logger</text>
+
+        <path class="wire w-ser" d="M156,110 L246,110" marker-end="url(#ah-ser)"/>
+        <text class="t-edge" x="201" y="101" text-anchor="middle">USB / CH340</text>
+        <text class="t-edge" x="201" y="126" text-anchor="middle">1.2 Mbaud</text>
+
+        <path class="wire w-ser" d="M250,230 L160,230" marker-end="url(#ah-ser)"/>
+        <text class="t-edge" x="205" y="221" text-anchor="middle">115 200</text>
+        <text class="t-edge" x="205" y="246" text-anchor="middle">log only</text>
+      </g>
+
+      <!-- esp32 -->
+      <rect class="box" x="250" y="60" width="176" height="400" rx="2"/>
+      <text class="t-title" x="262" y="86">ESP32 DEVKIT</text>
+      <text class="t-sub" x="262" y="104">CH340 USB-serial</text>
+      <line x1="262" y1="118" x2="414" y2="118" stroke="var(--rule)" stroke-width="1"/>
+      <text class="t-pin" x="262" y="140">UART0  1.2 M   in</text>
+      <text class="t-pin" x="262" y="158">UART1  115 k   out</text>
+      <text class="t-pin" x="262" y="176">I&#178;C master  1 MHz</text>
+      <text class="t-pin" x="262" y="194">PCNT 0 / 1  1 &#181;s filter</text>
+      <text class="t-pin" x="262" y="212">playout tick  6 kHz</text>
+      <text class="t-note" x="262" y="240">4 out &middot; 5 in</text>
+
+      <!-- safety switch -->
+      <g class="sig s-en">
+        <rect class="box" x="490" y="16" width="168" height="44" rx="2" stroke="var(--en)"/>
+        <text class="t-title" x="502" y="38" fill="var(--en)">SAFETY SWITCH</text>
+        <text class="t-sub" x="502" y="53">in the 3.3 V input rail</text>
+        <path class="wire w-en" d="M574,60 L574,72" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="584" y="70" fill="var(--en)">3.3 V VCC</text>
+      </g>
+
+      <!-- relay bank -->
+      <g class="sig s-en">
+        <rect class="box" x="490" y="76" width="168" height="128" rx="2"/>
+        <text class="t-title" x="502" y="96">RELAY BANK</text>
+        <text class="t-pin" x="502" y="114">1 &rarr;  drive #1 enable</text>
+        <text class="t-pin" x="502" y="142">2 &rarr;  drive #2 enable</text>
+        <text class="t-pin" x="502" y="174">3 &rarr;  status to GPIO 19</text>
+        <path class="wire w-en" d="M426,106 L486,106" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="456" y="99" text-anchor="middle">GPIO 25</text>
+        <path class="wire w-en" d="M426,138 L486,138" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="456" y="131" text-anchor="middle">GPIO 13</text>
+        <path class="wire w-en" d="M490,170 L430,170" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="460" y="163" text-anchor="middle">GPIO 19</text>
+      </g>
+
+      <!-- dac -->
+      <g class="sig s-an">
+        <rect class="box" x="490" y="240" width="168" height="62" rx="2"/>
+        <text class="t-title" x="502" y="264">GP8413 DAC</text>
+        <text class="t-sub" x="502" y="282">0x58 &middot; 2 &times; 15-bit &middot; 0&ndash;10 V</text>
+        <path class="wire w-an" d="M426,270 L486,270" marker-end="url(#ah-an)"/>
+        <text class="t-edge" x="456" y="263" text-anchor="middle">I&#178;C</text>
+        <text class="t-edge" x="456" y="286" text-anchor="middle">1 MHz</text>
+      </g>
+
+      <!-- rs485 -->
+      <g class="sig s-enc">
+        <rect class="box" x="490" y="430" width="168" height="84" rx="2"/>
+        <text class="t-title" x="502" y="454">RS-485 &rarr; TTL</text>
+        <text class="t-sub" x="502" y="472">4 &times; receiver, 3.3 V</text>
+        <text class="t-sub" x="502" y="490">one per phase</text>
+        <path class="wire w-enc" d="M486,502 L360,502 L360,464" marker-end="url(#ah-enc)"/>
+        <text class="t-edge" x="424" y="516" text-anchor="middle">GPIO 4 &middot; 5 &middot; 26 &middot; 27</text>
+      </g>
+
+      <!-- drives -->
+      <rect class="box" x="720" y="60" width="200" height="190" rx="2"/>
+      <text class="t-title" x="732" y="84">AASD-15A #1</text>
+      <text class="t-sub" x="732" y="100">torque mode</text>
+      <text class="t-pin" x="732" y="118">CN2 6   SRV-ON</text>
+      <text class="t-pin" x="732" y="204">CN2 25  Vref</text>
+      <text class="t-pin" x="732" y="234">CN2 20/19 18/17  PA&plusmn;/PB&plusmn;</text>
+
+      <rect class="box" x="720" y="300" width="200" height="190" rx="2"/>
+      <text class="t-title" x="732" y="324">AASD-15A #2</text>
+      <text class="t-sub" x="732" y="340">torque mode &middot; opposite-handed</text>
+      <text class="t-pin" x="732" y="364">CN2 6   SRV-ON</text>
+      <text class="t-pin" x="732" y="424">CN2 25  Vref</text>
+      <text class="t-pin" x="732" y="474">CN2 20/19 18/17  PA&plusmn;/PB&plusmn;</text>
+
+      <!-- enable wires to drives -->
+      <g class="sig s-en">
+        <path class="wire w-en" d="M658,106 L716,106" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="687" y="99" text-anchor="middle">pin 6</text>
+        <path class="wire w-en" d="M658,138 L712,138 L712,360 L716,360" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="684" y="131" text-anchor="middle">pin 6</text>
+      </g>
+
+      <!-- analog wires to drives -->
+      <g class="sig s-an">
+        <path class="wire w-an" d="M658,260 L704,260 L704,200 L716,200" marker-end="url(#ah-an)"/>
+        <text class="t-edge" x="681" y="253" text-anchor="middle">0&ndash;10 V</text>
+        <path class="wire w-an" d="M658,282 L694,282 L694,420 L716,420" marker-end="url(#ah-an)"/>
+        <text class="t-edge" x="676" y="296" text-anchor="middle">0&ndash;10 V</text>
+      </g>
+
+      <!-- encoder returns, with hops over the analog wires -->
+      <g class="sig s-enc">
+        <path class="wire w-enc" d="M720,230 L718,230 Q708,214 698,230 L676,230 L676,253 Q690,260 676,267 L676,275 Q690,282 676,289 L676,446 L662,446" marker-end="url(#ah-enc)"/>
+        <path class="wire w-enc" d="M720,470 L662,470" marker-end="url(#ah-enc)"/>
+        <text class="t-edge" x="689" y="464" text-anchor="middle">PA&plusmn; PB&plusmn;</text>
+      </g>
+
+      <!-- motors -->
+      <g class="sig s-ser">
+        <rect class="box-o" x="980" y="125" width="140" height="60" rx="2"/>
+        <text class="t-title" x="992" y="149" fill="var(--muted)">MOTOR 1</text>
+        <text class="t-sub" x="992" y="167">+ CN3 factory cable</text>
+        <rect class="box-o" x="980" y="365" width="140" height="60" rx="2"/>
+        <text class="t-title" x="992" y="389" fill="var(--muted)">MOTOR 2</text>
+        <text class="t-sub" x="992" y="407">+ CN3 factory cable</text>
+        <path class="wire w-ser thin" d="M920,155 L976,155" marker-end="url(#ah-ser)"/>
+        <text class="t-edge" x="948" y="148" text-anchor="middle">U/V/W</text>
+        <path class="wire w-ser thin" d="M920,395 L976,395" marker-end="url(#ah-ser)"/>
+        <text class="t-edge" x="948" y="388" text-anchor="middle">U/V/W</text>
+        <path class="wire w-ser thin dash" d="M760,32 L760,56" marker-end="url(#ah-ser)"/>
+        <text class="t-edge" x="770" y="30">220 V L1/L2/L3 + PE</text>
+        <path class="wire w-ser thin dash" d="M760,272 L760,296" marker-end="url(#ah-ser)"/>
+        <text class="t-edge" x="770" y="270">220 V + filter</text>
+      </g>
+
+    </svg>
+    </div>
+    <figcaption>
+      <b>Read the arrows, not the boxes.</b> The host link is one-way (host &rarr; device) and the log
+      link is one-way the other way, so a stalled bridge is invisible to the ESP32 except as an
+      underrun. The only closed loop in the drawing is <b>safety switch &rarr; relay 3 &rarr; GPIO 19</b>:
+      the hardware kill and the firmware&rsquo;s knowledge of it come from the same contact.
+      Green hops show where the encoder return crosses the analog command &mdash; no connection.
+    </figcaption>
+  </figure>
+
+  <div class="note">
+    <span class="h">Two paths, one switch</span>
+    <p>Cutting the safety switch starves the relay boards&rsquo; input optocouplers. All three relays
+    open: drives #1 and #2 are disabled <em>in hardware</em>, and GPIO 19 goes HIGH, which makes the
+    firmware declare <code>INACTIVE</code> and command 0 V. Neither path needs the other to work,
+    and the hardware one is faster &mdash; the relay opens immediately, the firmware notices on its next
+    100 ms poll. Plate 04 draws the mechanism.</p>
+  </div>
+</section>
+
+<section id="pins">
+  <div class="plate-head">
+    <span class="plate-no">Plate 02</span>
+    <h2>ESP32 pin map</h2>
+    <span class="plate-src">wiring.md &sect;1</span>
+  </div>
+
+  <p>Thirteen pins, and that is the whole of it. Every GPIO the firmware touches is below;
+  anything not drawn here is unused. Tab colour is the signal class.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg class="dg" viewBox="0 0 730 510" role="img" style="max-width:760px;margin:0 auto"
+      aria-label="ESP32 devkit pin map. Left side: GPIO 1 UART0 TX, GPIO 3 UART0 RX sample stream, GPIO 4 encoder 1 A, GPIO 5 encoder 1 B, GPIO 25 servo enable 1, GPIO 13 servo enable 2, GPIO 14 scope trigger. Right side: GPIO 16 UART1 RX, GPIO 17 UART1 TX log, GPIO 18 mode button, GPIO 19 status input, GPIO 21 I2C SDA, GPIO 22 I2C SCL, GPIO 26 encoder 2 A, GPIO 27 encoder 2 B.">
+
+      <rect class="box" x="260" y="50" width="220" height="420" rx="3"/>
+      <path d="M355,50 A15,15 0 0 0 385,50" fill="none" stroke="var(--rule)" stroke-width="1.5"/>
+      <text class="t-title" x="272" y="80">ESP32 DEVKIT</text>
+      <text class="t-sub" x="272" y="97">CH340 &middot; 3.3 V logic</text>
+      <line x1="272" y1="110" x2="468" y2="110" stroke="var(--rule)" stroke-width="1"/>
+      <text class="t-pin" x="272" y="136">UART0    3 in &middot; 1 out</text>
+      <text class="t-pin" x="272" y="162">UART1   16 in &middot; 17 out</text>
+      <text class="t-pin" x="272" y="188">I&#178;C     21 SDA &middot; 22 SCL</text>
+      <text class="t-pin" x="272" y="214">PCNT 0   4 A &middot; 5 B</text>
+      <text class="t-pin" x="272" y="240">PCNT 1  26 A &middot; 27 B</text>
+      <text class="t-pin" x="272" y="266">OUT     13 &middot; 14 &middot; 25</text>
+      <text class="t-pin" x="272" y="292">IN      18 &middot; 19</text>
+      <line x1="272" y1="312" x2="468" y2="312" stroke="var(--rule)" stroke-width="1"/>
+      <text class="t-note" x="272" y="336">GPIO 12 = MTDI strapping pin,</text>
+      <text class="t-note" x="272" y="352">left unused. Must be LOW at reset.</text>
+      <text class="t-note" x="272" y="382">GPIO 1 / 3 are the CH340 pins;</text>
+      <text class="t-note" x="272" y="398">nothing may drive 3 while flashing.</text>
+      <text class="t-note" x="272" y="428">Boot state of 25 / 13 is HIGH</text>
+      <text class="t-note" x="272" y="444">&rarr; relays open &rarr; drives inactive.</text>
+
+      <!-- left pins -->
+      <g class="sig s-ser">
+        <rect x="240" y="85" width="20" height="10" fill="var(--ser)"/>
+        <text x="234" y="93" text-anchor="end">GPIO 1 &mdash; UART0 TX (unused)</text>
+        <rect x="240" y="140" width="20" height="10" fill="var(--ser)"/>
+        <text x="234" y="148" text-anchor="end">GPIO 3 &mdash; UART0 RX, sample stream</text>
+        <rect x="240" y="415" width="20" height="10" fill="var(--ser)"/>
+        <text x="234" y="423" text-anchor="end">GPIO 14 &mdash; scope trigger</text>
+      </g>
+      <g class="sig s-enc">
+        <rect x="240" y="195" width="20" height="10" fill="var(--enc)"/>
+        <text x="234" y="203" text-anchor="end">GPIO 4 &mdash; encoder 1 A, PCNT 0</text>
+        <rect x="240" y="250" width="20" height="10" fill="var(--enc)"/>
+        <text x="234" y="258" text-anchor="end">GPIO 5 &mdash; encoder 1 B, direction</text>
+      </g>
+      <g class="sig s-en">
+        <rect x="240" y="305" width="20" height="10" fill="var(--en)"/>
+        <text x="234" y="313" text-anchor="end">GPIO 25 &mdash; servo enable 1 (relay)</text>
+        <rect x="240" y="360" width="20" height="10" fill="var(--en)"/>
+        <text x="234" y="368" text-anchor="end">GPIO 13 &mdash; servo enable 2 (relay)</text>
+      </g>
+
+      <!-- right pins -->
+      <g class="sig s-ser">
+        <rect x="480" y="73" width="20" height="10" fill="var(--ser)"/>
+        <text x="506" y="81">GPIO 16 &mdash; UART1 RX (unused)</text>
+        <rect x="480" y="125" width="20" height="10" fill="var(--ser)"/>
+        <text x="506" y="133">GPIO 17 &mdash; UART1 TX, log out</text>
+        <rect x="480" y="177" width="20" height="10" fill="var(--ser)"/>
+        <text x="506" y="185">GPIO 18 &mdash; mode button, to GND</text>
+      </g>
+      <g class="sig s-en">
+        <rect x="480" y="229" width="20" height="10" fill="var(--en)"/>
+        <text x="506" y="237">GPIO 19 &mdash; status input, relay 3</text>
+      </g>
+      <g class="sig s-an">
+        <rect x="480" y="281" width="20" height="10" fill="var(--an)"/>
+        <text x="506" y="289">GPIO 21 &mdash; I&#178;C SDA</text>
+        <rect x="480" y="333" width="20" height="10" fill="var(--an)"/>
+        <text x="506" y="341">GPIO 22 &mdash; I&#178;C SCL</text>
+      </g>
+      <g class="sig s-enc">
+        <rect x="480" y="385" width="20" height="10" fill="var(--enc)"/>
+        <text x="506" y="393">GPIO 26 &mdash; encoder 2 A, PCNT 1</text>
+        <rect x="480" y="437" width="20" height="10" fill="var(--enc)"/>
+        <text x="506" y="445">GPIO 27 &mdash; encoder 2 B, direction</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>
+      <b>Boot order matters here.</b> Pins 12 and 13 come up HIGH, so both relays are open and the
+      drives are inactive for the first ~1 s of every boot. They go LOW immediately <em>before</em>
+      <code>dac.begin()</code> &mdash; a few hundred microseconds live against an unconfigured DAC.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <caption>Every GPIO the firmware touches</caption>
+    <thead><tr>
+      <th class="n">GPIO</th><th>Dir</th><th>Function</th><th>Configured as</th><th>Source</th>
+    </tr></thead>
+    <tbody>
+      <tr><td class="n"><span class="pd pd-ser"></span>1</td><td class="m">out</td><td>UART0 TX &mdash; data link, unused</td><td class="m">1 200 000 8N1</td><td class="m dim">.ino:27</td></tr>
+      <tr><td class="n"><span class="pd pd-ser"></span>3</td><td class="m">in</td><td>UART0 RX &mdash; tactile sample stream</td><td class="m">1 200 000 8N1</td><td class="m dim">.ino:26</td></tr>
+      <tr><td class="n"><span class="pd pd-enc"></span>4</td><td class="m">in</td><td>Encoder ch1 <b>A</b> (pulse)</td><td class="m">PCNT 0, rising edge</td><td class="m dim">Counter.h:7</td></tr>
+      <tr><td class="n"><span class="pd pd-enc"></span>5</td><td class="m">in</td><td>Encoder ch1 <b>B</b> (direction)</td><td class="m">PCNT 0 control</td><td class="m dim">Counter.h:8</td></tr>
+      <tr><td class="n"><span class="pd pd-en"></span>13</td><td class="m">out</td><td class="used">Servo enable 2 &mdash; relay, active low</td><td class="m">HIGH at boot, LOW after 1 s</td><td class="m dim">.ino:56, 397</td></tr>
+      <tr><td class="n"><span class="pd pd-ser"></span>14</td><td class="m">out</td><td>Diagnostic / scope trigger</td><td class="m">driven LOW, never toggled</td><td class="m dim">.ino:41</td></tr>
+      <tr><td class="n"><span class="pd pd-ser"></span>16</td><td class="m">in</td><td>UART1 RX &mdash; logging, unused</td><td class="m">115 200 8N1</td><td class="m dim">.ino:18</td></tr>
+      <tr><td class="n"><span class="pd pd-ser"></span>17</td><td class="m">out</td><td>UART1 TX &mdash; log output</td><td class="m">115 200 8N1</td><td class="m dim">.ino:19</td></tr>
+      <tr><td class="n"><span class="pd pd-ser"></span>18</td><td class="m">in</td><td>Mode button, momentary to GND</td><td class="m">INPUT_PULLUP, 50 ms</td><td class="m dim">.ino:84</td></tr>
+      <tr><td class="n"><span class="pd pd-en"></span>19</td><td class="m">in</td><td class="used">Status input</td><td class="m">INPUT_PULLUP; HIGH &rArr; INACTIVE</td><td class="m dim">.ino:46</td></tr>
+      <tr><td class="n"><span class="pd pd-an"></span>21</td><td class="m">I/O</td><td>I&sup2;C <b>SDA</b> to GP8413</td><td class="m">pull-up on, 1 MHz</td><td class="m dim">GP8413_DAC.h:10</td></tr>
+      <tr><td class="n"><span class="pd pd-an"></span>22</td><td class="m">out</td><td>I&sup2;C <b>SCL</b> to GP8413</td><td class="m">pull-up on, 1 MHz</td><td class="m dim">GP8413_DAC.h:11</td></tr>
+      <tr><td class="n"><span class="pd pd-en"></span>25</td><td class="m">out</td><td class="used">Servo enable 1 &mdash; relay, active low</td><td class="m">HIGH at boot, LOW after 1 s</td><td class="m dim">.ino:55, 396</td></tr>
+      <tr><td class="n"><span class="pd pd-enc"></span>26</td><td class="m">in</td><td>Encoder ch2 <b>A</b> (pulse)</td><td class="m">PCNT 1, rising edge</td><td class="m dim">Counter.h:11</td></tr>
+      <tr><td class="n"><span class="pd pd-enc"></span>27</td><td class="m">in</td><td>Encoder ch2 <b>B</b> (direction)</td><td class="m">PCNT 1 control</td><td class="m dim">Counter.h:12</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note warn">
+    <span class="h">GPIO 12 is deliberately unused, and must stay that way</span>
+    <p>It is the <code>MTDI</code> strapping pin: it must read LOW at reset or the chip selects a
+    1.8 V <code>VDD_SDIO</code> and the flash supply is wrong. Drive 1&rsquo;s enable used to live
+    here, and a relay board&rsquo;s <code>IN</code> pin is not high-impedance &mdash; it is the
+    cathode of the input optocoupler LED, fed from the board&rsquo;s <code>VCC</code> through
+    roughly 1 k&#8486;, so it pulls toward 3.3 V. Against GPIO 12&rsquo;s weak internal pull-down
+    (~45 k&#8486;) that divider sits near 2 V, a solid logic HIGH &mdash; and the firmware&rsquo;s
+    own boot state for the pin was HIGH as well. The symptom is a board that boots with the safety
+    switch <b>open</b> and unreliably or not at all with it <b>closed</b>, since the switch controls
+    the very <code>VCC</code> that creates the pull-up.
+    <b>Drive 1&rsquo;s enable is now GPIO 25</b> &mdash; no strapping or boot-log role, and four
+    header positions from 12 on the same side of the devkit, so the relay wire still reaches. Leave
+    GPIO 12 unconnected, and do not fit a stronger external pull-down instead: that fights the opto
+    LED current and makes the relay&rsquo;s turn-on marginal.</p>
+  </div>
+</section>
+
+<section id="torque">
+  <div class="plate-head">
+    <span class="plate-no">Plate 03</span>
+    <h2>Torque command path</h2>
+    <span class="plate-src">wiring.md &sect;2&ndash;3</span>
+  </div>
+
+  <p>The ESP32 has no analog output, so the torque command for both drives is generated by one
+  GP8413 dual 15-bit DAC on I&sup2;C. Both channels are written in a single auto-incrementing
+  5-byte transaction, once per 6 kHz tick &mdash; about 56 &micro;s of the 167 &micro;s budget.</p>
+
+  <p>The module (DFRobot Gravity, DFR1073) has only four terminals on its input side &mdash;
+  <code>D</code>, <code>C</code>, <code>+</code>, <code>&minus;</code>. It runs from a single 5 V rail (its
+  datasheet supply) shared with the rest of the control side; an on-board boost converter makes
+  the 0&ndash;10 V output, so there is no separate high-voltage analog supply.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg class="dg dg-wide" viewBox="0 0 830 300" role="img"
+      aria-label="Torque command path: the ESP32 writes the GP8413 DAC over I2C at 1 MHz; VOUT0 goes to drive 1 CN2 pin 25 Vref and VOUT1 to drive 2 pin 25, while the DAC ground runs as two separate star conductors to each drive's CN2 pin 13 AGND.">
+
+      <rect class="box" x="20" y="120" width="140" height="70" rx="2"/>
+      <text class="t-title" x="32" y="148">ESP32</text>
+      <text class="t-sub" x="32" y="166">6 kHz playout tick</text>
+
+      <g class="sig s-an">
+        <path class="wire w-an" d="M160,155 L226,155" marker-end="url(#ah-an)"/>
+        <text class="t-edge" x="193" y="147" text-anchor="middle">I&#178;C 1 MHz</text>
+        <text class="t-edge" x="193" y="171" text-anchor="middle">5-byte write</text>
+      </g>
+
+      <rect class="box" x="230" y="90" width="180" height="130" rx="2"/>
+      <text class="t-title" x="242" y="116">GP8413 DAC</text>
+      <text class="t-sub" x="242" y="133">addr 0x58 &middot; range reg 0x77</text>
+      <text class="t-sub" x="242" y="151">0 &hellip; 10.000 V</text>
+      <text class="t-sub" x="242" y="167">1 LSB = 0.305 mV</text>
+      <text class="t-pin" x="400" y="192" text-anchor="end">VOUT0</text>
+      <text class="t-pin" x="400" y="210" text-anchor="end">VOUT1</text>
+      <text class="t-pin" x="400" y="162" text-anchor="end">GND</text>
+
+      <g class="sig s-an">
+        <path class="wire w-an" d="M410,188 L520,188 L520,70 L596,70" marker-end="url(#ah-an)"/>
+        <path class="wire w-an" d="M410,206 L496,206 L496,230 L596,230" marker-end="url(#ah-an)"/>
+        <text class="t-edge" x="530" y="128">0&ndash;10 V</text>
+        <text class="t-edge" x="506" y="222">0&ndash;10 V</text>
+
+        <!-- star ground: two separate conductors from one point at the DAC -->
+        <path class="wire w-an thin" d="M410,158 L452,158"/>
+        <circle cx="452" cy="158" r="3.5" fill="var(--an)"/>
+        <path class="wire w-an thin" d="M452,158 L452,182 Q462,188 452,194 L452,200 Q462,206 452,212 L452,262 L596,262" marker-end="url(#ah-an)"/>
+        <path class="wire w-an thin" d="M452,158 L452,100 L596,100" marker-end="url(#ah-an)"/>
+        <text class="t-note" x="462" y="152">star point</text>
+      </g>
+
+      <text class="t-title" x="600" y="32">AASD-15A #1 &middot; CN2</text>
+      <rect class="box" x="600" y="40" width="200" height="80" rx="2"/>
+      <text class="t-pin" x="612" y="74">25   Vref   (+)  &rarr; 10 k&#937; op-amp</text>
+      <text class="t-pin" x="612" y="104">13   AGND   (&minus;)</text>
+
+      <text class="t-title" x="600" y="192">AASD-15A #2 &middot; CN2</text>
+      <rect class="box" x="600" y="200" width="200" height="80" rx="2"/>
+      <text class="t-pin" x="612" y="234">25   Vref   (+)</text>
+      <text class="t-pin" x="612" y="264">13   AGND   (&minus;)</text>
+    </svg>
+    </div>
+    <figcaption>
+      <b>Return topology is a star, not a daisy chain.</b> Each drive gets its own AGND conductor
+      back to the DAC ground point, so neither drive&rsquo;s return current flows through the other&rsquo;s
+      reference. The hops on the ground wire are crossings, not junctions &mdash; the only junction is
+      the marked star point.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <caption>DAC configuration written at startup &mdash; GP8413_DAC.h</caption>
+    <thead><tr><th>Item</th><th class="m">Value</th><th>Meaning</th></tr></thead>
+    <tbody>
+      <tr><td>I&sup2;C address</td><td class="m">0x58</td><td class="dim">GP8413_ADDRESS</td></tr>
+      <tr><td>Bus speed</td><td class="m">1 MHz</td><td class="dim">above the GP8413&rsquo;s specified 400 kHz</td></tr>
+      <tr><td>Range register <span class="m">0x01</span></td><td class="m">0x77</td><td class="dim">OUTPUT_RANGE_10V &rarr; 0&ndash;10 V both channels</td></tr>
+      <tr><td>CH0 data register</td><td class="m">0x02 / 0x03</td><td class="dim">low byte, high byte (7 bits)</td></tr>
+      <tr><td>CH1 data register</td><td class="m">0x04 / 0x05</td><td class="dim">same auto-incrementing transaction</td></tr>
+      <tr><td>Update rate</td><td class="m">6 kHz</td><td class="dim">one 5-byte write per tick, ~56 &micro;s of 167 &micro;s</td></tr>
+      <tr><td>Full scale</td><td class="m">32767 = 10.000 V</td><td class="dim">code 0 = 0 V, 1 LSB &asymp; 0.305 mV</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note warn">
+    <span class="h">Only half the drive&rsquo;s input range is reachable</span>
+    <p>The <code>Vref</code> input accepts &minus;10 V &hellip; +10 V, but the GP8413 produces
+    0 &hellip; +10 V only. The drives never see a negative command, so the belt pulls in one
+    direction per channel. That matches the firmware &mdash; <code>processData()</code> takes
+    <code>max(stream, encoder)</code> and clamps at zero, never a signed value &mdash; and the
+    mechanics: channel 2 gets its opposing direction from being <em>mounted opposite-handed</em>,
+    not from the command sign.</p>
+  </div>
+
+  <div class="note tbd">
+    <span class="h">TBD on this plate</span>
+    <p>External I&sup2;C pull-up value actually fitted (internal ~45 k&Omega; is marginal at 1 MHz)
+    &middot; shielded pair for the analog run, shield
+    grounded at one end &middot; drive parameters: control mode, full-scale voltage, gain, offset,
+    dead band, torque limit, speed limit &mdash; and that 0 V is <em>exactly</em> zero torque, not a
+    bipolar mid-scale.</p>
+  </div>
+
+  <div class="note">
+    <span class="h">AGND is not isolated</span>
+    <p>Unlike the enable path, the analog command shares a ground: both drives&rsquo; pin 13 and the
+    GP8413 ground meet at the DAC, and through the devkit that net reaches USB ground and the host
+    PC. The star topology removes the drive-to-drive coupling, but not the path to the PC.</p>
+  </div>
+</section>
+
+<section id="enable">
+  <div class="plate-head">
+    <span class="plate-no">Plate 04</span>
+    <h2>Enable &amp; safety chain</h2>
+    <span class="plate-src">wiring.md &sect;4</span>
+  </div>
+
+  <p>The ESP32 does not drive the servo-on inputs directly. Each enable GPIO drives a relay, and
+  the relay contact sits in the drive&rsquo;s enable path &mdash; the module provides both the level shift
+  and the isolation. The safety switch is not in the coil current and not in any mains circuit:
+  it sits in the <b>3.3 V supply to the relay boards&rsquo; input side</b>, so it is an ordinary
+  low-voltage, low-current switch with no special rating.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg class="dg dg-wide" viewBox="0 0 950 415" role="img"
+      aria-label="Enable and safety chain: USB 5 V feeds JD-VCC on all three relay boards unswitched. A safety switch sits in the 3.3 V rail that feeds VCC, the input optocoupler supply, on all three boards. Relay 1 IN is GPIO 25 and closes drive 1 CN2 pin 6; relay 2 IN is GPIO 13 and closes drive 2 pin 6; relay 3 IN is tied to ground and closes ESP32 GPIO 19 to ground. The VCC to JD-VCC jumper is removed on every board.">
+
+      <!-- 5 V bus -->
+      <g class="sig s-ser">
+        <text class="t-edge" x="60" y="30">USB 5 V &mdash; unswitched (coil supply)</text>
+        <path class="wire w-ser" d="M60,44 L900,44"/>
+      </g>
+
+      <!-- safety switch + 3.3 V bus -->
+      <g class="sig s-en">
+        <text class="t-title" x="60" y="78" fill="var(--en)">SAFETY SWITCH</text>
+        <path class="wire w-en" d="M40,100 L110,100"/>
+        <text class="t-edge" x="40" y="120">3.3 V</text>
+        <circle cx="112" cy="100" r="3.5" fill="var(--en)"/>
+        <circle cx="192" cy="100" r="3.5" fill="var(--en)"/>
+        <path class="wire w-en" d="M112,100 L186,84"/>
+        <path class="wire w-en" d="M192,100 L900,100"/>
+        <text class="t-edge" x="210" y="120">switched 3.3 V &mdash; relay input (opto) supply on all three boards</text>
+      </g>
+
+      <!-- relay board 1 -->
+      <g class="sig s-en">
+        <path class="wire w-ser thin" d="M110,44 L110,92 Q122,100 110,108 L110,190" marker-end="url(#ah-ser)"/>
+        <circle cx="110" cy="44" r="3" fill="var(--ser)"/>
+        <path class="wire w-en thin" d="M180,100 L180,190" marker-end="url(#ah-en)"/>
+        <circle cx="180" cy="100" r="3" fill="var(--en)"/>
+        <path class="wire w-en thin" d="M255,158 L255,190" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="255" y="150" text-anchor="middle">GPIO 25</text>
+
+        <text class="t-title" x="60" y="186">RELAY 1</text>
+        <rect class="box" x="60" y="196" width="240" height="152" rx="2"/>
+        <text class="t-sub" x="110" y="216" text-anchor="middle">JD-VCC</text>
+        <text class="t-sub" x="180" y="216" text-anchor="middle">VCC</text>
+        <text class="t-sub" x="255" y="216" text-anchor="middle">IN</text>
+        <path class="wire thin dash" d="M110,236 L180,236" stroke="var(--muted)"/>
+        <path d="M139,230 L151,242 M151,230 L139,242" stroke="var(--en)" stroke-width="2" fill="none"/>
+        <text class="t-note" x="145" y="258" text-anchor="middle" fill="var(--en)">JUMPER OUT</text>
+        <line x1="72" y1="272" x2="288" y2="272" stroke="var(--rule)" stroke-width="1"/>
+        <circle cx="100" cy="304" r="3.5" fill="var(--en)"/>
+        <circle cx="180" cy="304" r="3.5" fill="var(--en)"/>
+        <path class="wire w-en" d="M100,304 L174,290"/>
+        <text class="t-note" x="138" y="284" text-anchor="middle">N.O.</text>
+        <text class="t-sub" x="180" y="332" text-anchor="middle">closed &rArr; pin 6 to common</text>
+        <path class="wire w-en thin" d="M180,348 L180,376" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="180" y="394" text-anchor="middle">DRIVE #1 &middot; CN2 pin 6</text>
+      </g>
+
+      <!-- relay board 2 -->
+      <g class="sig s-en">
+        <path class="wire w-ser thin" d="M400,44 L400,92 Q412,100 400,108 L400,190" marker-end="url(#ah-ser)"/>
+        <circle cx="400" cy="44" r="3" fill="var(--ser)"/>
+        <path class="wire w-en thin" d="M470,100 L470,190" marker-end="url(#ah-en)"/>
+        <circle cx="470" cy="100" r="3" fill="var(--en)"/>
+        <path class="wire w-en thin" d="M545,158 L545,190" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="545" y="150" text-anchor="middle">GPIO 13</text>
+
+        <text class="t-title" x="350" y="186">RELAY 2</text>
+        <rect class="box" x="350" y="196" width="240" height="152" rx="2"/>
+        <text class="t-sub" x="400" y="216" text-anchor="middle">JD-VCC</text>
+        <text class="t-sub" x="470" y="216" text-anchor="middle">VCC</text>
+        <text class="t-sub" x="545" y="216" text-anchor="middle">IN</text>
+        <path class="wire thin dash" d="M400,236 L470,236" stroke="var(--muted)"/>
+        <path d="M429,230 L441,242 M441,230 L429,242" stroke="var(--en)" stroke-width="2" fill="none"/>
+        <text class="t-note" x="435" y="258" text-anchor="middle" fill="var(--en)">JUMPER OUT</text>
+        <line x1="362" y1="272" x2="578" y2="272" stroke="var(--rule)" stroke-width="1"/>
+        <circle cx="390" cy="304" r="3.5" fill="var(--en)"/>
+        <circle cx="470" cy="304" r="3.5" fill="var(--en)"/>
+        <path class="wire w-en" d="M390,304 L464,290"/>
+        <text class="t-note" x="428" y="284" text-anchor="middle">N.O.</text>
+        <text class="t-sub" x="470" y="332" text-anchor="middle">closed &rArr; pin 6 to common</text>
+        <path class="wire w-en thin" d="M470,348 L470,376" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="470" y="394" text-anchor="middle">DRIVE #2 &middot; CN2 pin 6</text>
+      </g>
+
+      <!-- relay board 3 -->
+      <g class="sig s-en">
+        <path class="wire w-ser thin" d="M690,44 L690,92 Q702,100 690,108 L690,190" marker-end="url(#ah-ser)"/>
+        <circle cx="690" cy="44" r="3" fill="var(--ser)"/>
+        <path class="wire w-en thin" d="M760,100 L760,190" marker-end="url(#ah-en)"/>
+        <circle cx="760" cy="100" r="3" fill="var(--en)"/>
+        <path class="wire w-en thin" d="M835,158 L835,190" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="835" y="150" text-anchor="middle">tied to GND</text>
+
+        <text class="t-title" x="640" y="186">RELAY 3</text>
+        <rect class="box" x="640" y="196" width="240" height="152" rx="2"/>
+        <text class="t-sub" x="690" y="216" text-anchor="middle">JD-VCC</text>
+        <text class="t-sub" x="760" y="216" text-anchor="middle">VCC</text>
+        <text class="t-sub" x="835" y="216" text-anchor="middle">IN</text>
+        <path class="wire thin dash" d="M690,236 L760,236" stroke="var(--muted)"/>
+        <path d="M719,230 L731,242 M731,230 L719,242" stroke="var(--en)" stroke-width="2" fill="none"/>
+        <text class="t-note" x="725" y="258" text-anchor="middle" fill="var(--en)">JUMPER OUT</text>
+        <line x1="652" y1="272" x2="868" y2="272" stroke="var(--rule)" stroke-width="1"/>
+        <circle cx="680" cy="304" r="3.5" fill="var(--en)"/>
+        <circle cx="760" cy="304" r="3.5" fill="var(--en)"/>
+        <path class="wire w-en" d="M680,304 L754,290"/>
+        <text class="t-note" x="718" y="284" text-anchor="middle">N.O.</text>
+        <text class="t-sub" x="760" y="332" text-anchor="middle">permanently commanded on</text>
+        <path class="wire w-en thin" d="M760,348 L760,376" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="760" y="394" text-anchor="middle">ESP32 GPIO 19 &rarr; GND</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>
+      <b>Relay 3 has no GPIO of its own.</b> Its input is wired straight to ground, so its
+      optocoupler conducts whenever the switched 3.3 V is present and stops the moment it is not.
+      It is a direct electrical report of the safety switch, which the firmware reads on GPIO 19.
+      Hops on the 5 V drops mark crossings over the 3.3 V bus &mdash; the two rails never meet.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <caption>What the switch does</caption>
+    <thead><tr>
+      <th>Safety switch</th><th>Relay boards</th><th>Relays 1 &amp; 2</th><th>Relay 3</th>
+      <th class="m">GPIO 19</th><th>Result</th>
+    </tr></thead>
+    <tbody>
+      <tr><td class="used">on</td><td>3.3 V present</td><td>firmware-controlled</td><td>closed</td><td class="m used">LOW</td><td>normal operation</td></tr>
+      <tr><td class="used">off</td><td>inputs starved</td><td class="used">open &mdash; drives disabled</td><td class="used">open</td><td class="m used">HIGH</td><td><code>INACTIVE</code>, DAC commanded to 0 V</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tw">
+  <table>
+    <caption>Relay interface</caption>
+    <thead><tr><th>Item</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>Relay</td><td><span class="m">SRD-05VDC-SL-C</span> on a standard maker relay board, 5 V version</td></tr>
+      <tr><td>Relay count</td><td><b>three</b> &mdash; two for the drives, one for the status input</td></tr>
+      <tr><td>Input (control) voltage</td><td>3.3 V &mdash; driven directly by the ESP32 GPIO</td></tr>
+      <tr><td>Coil voltage</td><td>5 V, from the USB rail (<span class="m">JD-VCC</span>, unswitched)</td></tr>
+      <tr><td>Opto supply</td><td>3.3 V through the safety switch (<span class="m">VCC</span>)</td></tr>
+      <tr><td>Coil driver, flyback diode, input opto</td><td>on the module &mdash; nothing external needed</td></tr>
+      <tr><td>GPIO level &rarr; contact</td><td><span class="m">HIGH</span> = open = drive <b>inactive</b> &nbsp;&middot;&nbsp; <span class="m">LOW</span> = closed = drive <b>active</b></td></tr>
+      <tr><td>Connector on the AASD-15A carrying pin 6</td><td class="dim">TBD</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note warn">
+    <span class="h">The VCC&ndash;JD-VCC jumper must stay removed</span>
+    <p>Separating those two rails is what puts the safety switch in the path at all. Refitting the
+    jumper &mdash; the default state these boards ship in &mdash; would tie <code>VCC</code> to the
+    unswitched 5 V and <b>silently defeat the kill path</b>: the relays would keep working
+    normally, and the only symptom would be a safety switch that no longer does anything. Check
+    this after any board swap or repair.</p>
+  </div>
+
+  <div class="note">
+    <span class="h">Fail-safe in the right direction</span>
+    <p>The contact is normally open, so a de-energised relay, a broken coil wire, a lost coil
+    supply, an unpowered or resetting ESP32 all leave pin 6 floating and the drives inactive.
+    Activation requires the firmware to actively hold the GPIO low. <b>Re-arming is not
+    automatic</b> &mdash; when the switch returns, the firmware moves to <code>PRE_INITIALIZED</code>,
+    which is only left by pressing the mode button.</p>
+  </div>
+</section>
+
+<section id="opto">
+  <div class="plate-head">
+    <span class="plate-no">Plate 05</span>
+    <h2>Drive-side input circuit</h2>
+    <span class="plate-src">wiring.md &sect;4</span>
+  </div>
+
+  <p>The AASD-15A digital inputs are optocoupler inputs sharing one common anode terminal, with a
+  5 k&Omega; series resistor internal to the drive. This is the manufacturer&rsquo;s &ldquo;switch input
+  method&rdquo;: supply positive to pin 9, supply negative to <code>COM(10)</code>, and a contact
+  between the two energises the LED.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg class="dg dg-wide" viewBox="0 0 780 250" role="img"
+      aria-label="Drive input circuit: USB 5 V goes to CN2 pin 9, through a 5 kilohm resistor internal to the drive, through the optocoupler LED, out at CN2 pin 6, through the normally-open relay contact, and back to the supply negative. The phototransistor side of the optocoupler feeds the drive logic across the isolation barrier.">
+
+      <rect class="box" x="20" y="88" width="70" height="140" rx="2"/>
+      <text class="t-title" x="55" y="146" text-anchor="middle">USB</text>
+      <text class="t-title" x="55" y="166" text-anchor="middle">5 V</text>
+      <text class="t-pin" x="100" y="104">+</text>
+      <text class="t-pin" x="100" y="205">&minus;</text>
+
+      <rect class="box-o" x="170" y="50" width="300" height="150" rx="2" stroke="var(--muted)"/>
+      <text class="t-note" x="182" y="192">inside the AASD-15A</text>
+
+      <!-- opto secondary -->
+      <rect class="box-o" x="290" y="52" width="130" height="32" rx="2"/>
+      <text class="t-sub" x="355" y="72" text-anchor="middle">phototransistor &rarr; drive logic</text>
+      <path class="wire thin dash" d="M313,96 L322,86" stroke="var(--muted)" marker-end="url(#ah-ser)"/>
+      <path class="wire thin dash" d="M325,96 L334,86" stroke="var(--muted)" marker-end="url(#ah-ser)"/>
+
+      <g class="sig s-en">
+        <!-- pin 9 -->
+        <path class="wire w-en" d="M90,110 L164,110"/>
+        <rect x="164" y="104" width="12" height="12" fill="var(--en)"/>
+        <text class="t-edge" x="170" y="96" text-anchor="middle" fill="var(--en)">CN2 9</text>
+        <text class="t-sub" x="170" y="34" text-anchor="middle">input common</text>
+
+        <!-- resistor -->
+        <path class="wire w-en" d="M176,110 L210,110"/>
+        <rect x="210" y="101" width="56" height="18" fill="var(--plate-2)" stroke="var(--en)" stroke-width="1.5"/>
+        <text class="t-sub" x="238" y="134" text-anchor="middle">5 k&#937; internal</text>
+
+        <!-- led -->
+        <path class="wire w-en" d="M266,110 L310,110"/>
+        <polygon points="310,98 310,122 332,110" fill="none" stroke="var(--en)" stroke-width="2"/>
+        <line x1="332" y1="98" x2="332" y2="122" stroke="var(--en)" stroke-width="2"/>
+        <text class="t-sub" x="321" y="148" text-anchor="middle">opto LED &asymp; 1.2 V</text>
+
+        <!-- pin 6 -->
+        <path class="wire w-en" d="M332,110 L464,110"/>
+        <rect x="464" y="104" width="12" height="12" fill="var(--en)"/>
+        <text class="t-edge" x="470" y="96" text-anchor="middle" fill="var(--en)">CN2 6</text>
+        <text class="t-sub" x="470" y="34" text-anchor="middle">SigIn1 &middot; SRV-ON</text>
+
+        <!-- relay contact -->
+        <path class="wire w-en" d="M476,110 L560,110"/>
+        <circle cx="560" cy="110" r="3.5" fill="var(--en)"/>
+        <circle cx="640" cy="110" r="3.5" fill="var(--en)"/>
+        <path class="wire w-en" d="M560,110 L634,96"/>
+        <text class="t-edge" x="600" y="80" text-anchor="middle" fill="var(--en)">RELAY &middot; N.O.</text>
+        <text class="t-sub" x="600" y="134" text-anchor="middle">dry contact, isolating</text>
+
+        <!-- return -->
+        <path class="wire w-en" d="M640,110 L700,110 L700,210 L90,210" marker-end="url(#ah-en)"/>
+        <text class="t-sub" x="395" y="228" text-anchor="middle">supply negative &mdash; TBD: <tspan font-style="normal">COM(10)</tspan> or straight to USB 0 V</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>
+      <b>The isolation barrier is the drive&rsquo;s own optocoupler</b>, so nothing on the ESP32/USB side
+      is galvanically tied to the drive&rsquo;s internal or power ground. The relay contact adds a second,
+      independent break in the same loop.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <caption>Why pin 9 runs at 5 V and not 12&ndash;24 V &mdash; LED forward current</caption>
+    <thead><tr><th>Pin 9 supply</th><th class="n">LED current</th><th style="width:45%">Relative</th></tr></thead>
+    <tbody>
+      <tr><td class="m">24 V</td><td class="n">&asymp; 4.6 mA</td>
+        <td><span style="display:block;height:9px;width:100%;max-width:210px;background:var(--rule);border-radius:2px"><span style="display:block;height:9px;width:100%;background:var(--muted);border-radius:2px"></span></span></td></tr>
+      <tr><td class="m">12 V <span class="dim">(datasheet minimum)</span></td><td class="n">&asymp; 2.2 mA</td>
+        <td><span style="display:block;height:9px;width:100%;max-width:210px;background:var(--rule);border-radius:2px"><span style="display:block;height:9px;width:47.8%;background:var(--muted);border-radius:2px"></span></span></td></tr>
+      <tr><td class="m used">5 V &mdash; as built</td><td class="n used">&asymp; 0.76 mA</td>
+        <td><span style="display:block;height:9px;width:100%;max-width:210px;background:var(--rule);border-radius:2px"><span style="display:block;height:9px;width:16.5%;background:var(--en);border-radius:2px"></span></span></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>5 V is below the specified range on paper, but driving these inputs from a 5 V logic rail is
+  long-established practice in the <b>SFX-100</b> motion-simulator community, which has used the
+  same AASD-15A drives this way for years across a large number of builds. The optocoupler turns
+  on reliably at this current; the field record is the justification, and it lets the whole
+  control side run from the single USB 5 V rail with no separate 24 V supply.</p>
+
+  <p>If a build ever does show marginal or intermittent enabling, the remedy needs no rework of
+  the control side: the relay contact is dry and already isolating, so pin 9 can be moved to 12 V
+  or 24 V while the coil stays at 5 V and the GPIO at 3.3 V. Only the wire into pin 9 and the
+  contact&rsquo;s return change.</p>
+
+  <div class="tw">
+  <table>
+    <caption>CN2 digital inputs &mdash; what is used</caption>
+    <thead><tr><th class="n">Pin</th><th>Signal</th><th>Drive function</th><th>Used</th></tr></thead>
+    <tbody>
+      <tr><td class="n used">9</td><td class="m">DC12~24V</td><td>input common, anode side</td><td class="used">yes &mdash; fed 5 V here</td></tr>
+      <tr><td class="n used">6</td><td class="m">SigIn1</td><td><b>SRV-ON</b></td><td class="used">yes &mdash; the enable</td></tr>
+      <tr><td class="n dim">7</td><td class="m dim">SigIn2</td><td class="dim">Alarm Reset</td><td class="dim">no</td></tr>
+      <tr><td class="n dim">21</td><td class="m dim">SigIn3</td><td class="dim">Position deviation clear</td><td class="dim">no</td></tr>
+      <tr><td class="n dim">8</td><td class="m dim">SigIn4</td><td class="dim">ZEROSPD</td><td class="dim">no</td></tr>
+      <tr><td class="n">10</td><td class="m">COM</td><td>input common return (supply negative)</td><td class="dim">TBD &mdash; see above</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note tbd">
+    <span class="h">TBD on this plate</span>
+    <p>Is <code>COM(10)</code> wired, or does the relay go straight to the USB 0 V? Electrically
+    equivalent only if that 0 V <em>is</em> the supply negative. &middot; How the unused inputs are
+    left &mdash; floating is the inactive state here, since the LED needs a return path to conduct.
+    &middot; The 5 V current budget: two relay coils plus the ESP32 all run from the same USB rail,
+    and a small 5 V coil is typically 70&ndash;80 mA, so both energising together is a meaningful step
+    load on a rail that is also feeding the devkit regulator.</p>
+  </div>
+
+  <div class="note">
+    <span class="h">Two drive outputs would answer questions the system cannot presently answer</span>
+    <p><span class="m">SigOut1</span> (pin 11) is <b>SRV-READY</b> &mdash; the drive telling the controller
+    it is ready. <span class="m">SigOut2</span> (pin 23) is <b>alarm detection</b>: a faulted drive is
+    currently invisible to the firmware and to the log. Both are open-collector, both unwired.
+    <b>TBD: whether GPIO 19&rsquo;s status input is fed from SigOut1 on one of the drives, or from
+    something else entirely.</b></p>
+  </div>
+</section>
+
+<section id="encoder">
+  <div class="plate-head">
+    <span class="plate-no">Plate 06</span>
+    <h2>Encoder feedback</h2>
+    <span class="plate-src">wiring.md &sect;5</span>
+  </div>
+
+  <p>The source is the drive&rsquo;s <b>position pulse output</b> on CN2 &mdash; a differential line-driver
+  copy of the motor encoder, referenced to <code>DGND</code>. The line-driver pairs do not go to
+  the ESP32 directly: each pair is received by its own small RS-485-to-TTL module, used purely as
+  a differential line receiver. <b>One module per signal, four in total.</b></p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg class="dg dg-wide" viewBox="0 0 860 250" role="img"
+      aria-label="Encoder receiver path: the drive's CN2 pins 20 and 19 carry the PA plus and minus differential pair to an RS-485 to TTL module's A plus and B minus terminals, terminated by 120 ohms. The module is powered from the ESP32's 3.3 V rail, its TXD is left disconnected, and its RXD output goes to ESP32 GPIO 4. The drive's DGND on pin 16 is the common for the module and the ESP32.">
+
+      <rect class="box" x="20" y="60" width="180" height="120" rx="2"/>
+      <text class="t-title" x="32" y="84">AASD-15A CN2</text>
+      <text class="t-sub" x="32" y="100">line driver output</text>
+      <g class="sig s-enc">
+        <text class="t-pin" x="32" y="116">20  PA+</text>
+        <text class="t-pin" x="32" y="136">19  PA&minus;</text>
+      </g>
+      <text class="t-pin" x="32" y="166">16  DGND</text>
+
+      <g class="sig s-enc">
+        <path class="wire w-enc thin" d="M200,112 L316,112"/>
+        <path class="wire w-enc thin" d="M200,132 L316,132"/>
+        <text class="t-edge" x="258" y="104" text-anchor="middle">differential pair</text>
+      </g>
+
+      <rect class="box" x="320" y="50" width="220" height="150" rx="2"/>
+      <text class="t-title" x="332" y="74">RS-485 &rarr; TTL</text>
+      <text class="t-sub" x="332" y="90">MAX3485-type + 74HC04</text>
+      <g class="sig s-enc">
+        <text class="t-pin" x="332" y="116">A+</text>
+        <text class="t-pin" x="332" y="136">B&minus;</text>
+        <rect x="374" y="106" width="14" height="34" fill="var(--plate-2)" stroke="var(--enc)" stroke-width="1.5"/>
+        <text class="t-sub" x="396" y="128">120 &#937; term.</text>
+        <path class="wire w-enc" d="M536,122 L616,122" marker-end="url(#ah-enc)"/>
+        <text class="t-edge" x="576" y="114" text-anchor="middle">RXD</text>
+      </g>
+      <circle cx="544" cy="164" r="4" fill="none" stroke="var(--muted)" stroke-width="1.5"/>
+      <line x1="536" y1="164" x2="540" y2="164" stroke="var(--muted)" stroke-width="1.5"/>
+      <text class="t-note" x="554" y="168">TXD &mdash; not connected</text>
+      <path class="wire w-ser thin" d="M430,44 L430,50" marker-end="url(#ah-ser)"/>
+      <text class="t-sub" x="430" y="36" text-anchor="middle">VCC &mdash; 3.3 V from the devkit</text>
+
+      <rect class="box" x="620" y="80" width="200" height="90" rx="2"/>
+      <text class="t-title" x="632" y="106">ESP32</text>
+      <g class="sig s-enc"><text class="t-pin" x="632" y="128">GPIO 4  &rarr;  PCNT 0, A</text></g>
+      <text class="t-pin" x="632" y="148">rising edge = 1 count</text>
+
+      <path class="wire w-ser thin" d="M200,160 L215,160 L215,216 L720,216 L720,174" marker-end="url(#ah-ser)"/>
+      <circle cx="430" cy="216" r="3" fill="var(--ser)"/>
+      <path class="wire w-ser thin" d="M430,216 L430,200"/>
+      <text class="t-sub" x="470" y="234">common ground &mdash; drive DGND, module GND, ESP32 GND</text>
+      <text class="t-note" x="332" y="188">earth terminal &rarr; controller GND</text>
+    </svg>
+    </div>
+    <figcaption>
+      <b>The 3.3 V supply is what makes RXD directly GPIO-safe.</b> Running the modules from the
+      ESP32&rsquo;s own 3V3 rail means their logic outputs cannot exceed the rail the GPIOs are
+      referenced to &mdash; no level shifting anywhere in the encoder path. A 5 V-powered module, or a
+      MAX485 board which looks identical, would put 5 V on pins rated 3.6 V absolute maximum.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <caption>Four modules, one per signal</caption>
+    <thead><tr><th class="n">Module</th><th>Input A+ / B&minus;</th><th>Output RXD &rarr;</th><th>Carries</th><th>PCNT behaviour</th></tr></thead>
+    <tbody>
+      <tr><td class="n">1</td><td class="m">#1 PA+ (20) / PA&minus; (19)</td><td class="m used">GPIO 4</td><td>ch1 A phase</td><td class="dim">unit 0, rising edge = 1 count</td></tr>
+      <tr><td class="n">2</td><td class="m">#1 PB+ (18) / PB&minus; (17)</td><td class="m used">GPIO 5</td><td>ch1 B phase</td><td class="dim">B <b>low &rArr; count down</b>, high &rArr; up</td></tr>
+      <tr><td class="n">3</td><td class="m">#2 PA+ (20) / PA&minus; (19)</td><td class="m used">GPIO 26</td><td>ch2 A phase</td><td class="dim">unit 1, rising edge = 1 count</td></tr>
+      <tr><td class="n">4</td><td class="m">#2 PB+ (18) / PB&minus; (17)</td><td class="m used">GPIO 27</td><td>ch2 B phase</td><td class="dim"><b>mirrored:</b> B low &rArr; count <b>up</b></td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <p>The firmware counts <b>rising edges on A only</b>, and uses the <b>level of B at that edge</b>
+  to pick the direction &mdash; a 1&times; decode, not 4&times;.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg class="dg" viewBox="0 0 620 200" role="img" style="max-width:660px;margin:0 auto"
+      aria-label="Timing diagram of the 1x decode: channel A is a square wave, channel B is the same wave lagging by a quarter period. Only A's four rising edges are sampled, and B is low at each one, which makes channel 1 count down.">
+      <text class="t-note" x="40" y="24">1&times; decode &mdash; sample B on every rising edge of A</text>
+      <text class="t-title" x="52" y="65" text-anchor="end">A</text>
+      <text class="t-title" x="52" y="135" text-anchor="end">B</text>
+      <g class="sig s-enc">
+        <path class="wire w-enc" d="M80,60 L110,60 L110,40 L160,40 L160,60 L210,60 L210,40 L260,40 L260,60 L310,60 L310,40 L360,40 L360,60 L410,60 L410,40 L460,40 L460,60 L520,60"/>
+        <path class="wire w-enc" d="M80,130 L135,130 L135,110 L185,110 L185,130 L235,130 L235,110 L285,110 L285,130 L335,130 L335,110 L385,110 L385,130 L435,130 L435,110 L485,110 L485,130 L520,130"/>
+        <g stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3">
+          <line x1="110" y1="34" x2="110" y2="142"/><line x1="210" y1="34" x2="210" y2="142"/>
+          <line x1="310" y1="34" x2="310" y2="142"/><line x1="410" y1="34" x2="410" y2="142"/>
+        </g>
+        <g fill="var(--enc)">
+          <circle cx="110" cy="130" r="4"/><circle cx="210" cy="130" r="4"/>
+          <circle cx="310" cy="130" r="4"/><circle cx="410" cy="130" r="4"/>
+        </g>
+      </g>
+      <text class="t-sub" x="260" y="164" text-anchor="middle">B is LOW at every sampled edge</text>
+      <text class="t-sub" x="260" y="182" text-anchor="middle">&rArr; CH1 counts DOWN &nbsp;&middot;&nbsp; CH2 is the mirror and counts UP</text>
+    </svg>
+    </div>
+    <figcaption>
+      <b>CH2&rsquo;s direction modes are deliberately the mirror of CH1&rsquo;s</b> because the second unit is
+      mounted opposite-handed (<span class="m">Counter.h:87&ndash;88</span>). Do not tidy them to match.
+      Nothing between the drive and the GPIO flips polarity, so if a counter ever reads backwards
+      the cause is mechanical handing or a swapped pair at the terminals.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <caption>Counter behaviour</caption>
+    <thead><tr><th>Item</th><th>Value</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Glitch filter</td><td class="m">80 APB cycles = 1 &micro;s</td><td class="dim">rejects switching noise; passes up to ~500 kHz</td></tr>
+      <tr><td>Counter width</td><td class="m">signed 16-bit</td><td class="dim"><b>wraps to 0</b> at &plusmn;32767/&minus;32768 &mdash; it does not saturate</td></tr>
+      <tr><td>Reset</td><td class="m">on button release</td><td class="dim">this is the zero the preload is measured from</td></tr>
+      <tr><td>Z / index</td><td class="m dim">PZ&plusmn; (15/14), OZ (22)</td><td class="dim">available, unused &mdash; one pulse per revolution, no absolute reference</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <span class="h">Counts are never converted to distance, and do not need to be</span>
+    <p>The drives run in <em>torque</em> mode, so the encoder is not used to measure or command
+    position. The count is a relative displacement from the zero set at arming, and it feeds a
+    <b>floor under the torque command</b> that rises as the belt is pulled out &mdash; a virtual
+    spring, not a position loop. That makes the counts-to-DAC gain a tuned feel parameter rather
+    than a calibrated mapping: there is no counts-per-revolution figure to record. The one number
+    that matters is where the floor saturates.</p>
+  </div>
+
+  <div class="note tbd">
+    <span class="h">TBD on this plate</span>
+    <p>Confirm the exact transceiver marking (MAX3485-type assumed) &middot; confirm <b>only the
+    module terminates</b> &mdash; each pair is point-to-point, so one 120 &Omega; termination per pair is
+    right; if the drive also has a termination option enabled, or a module is daisy-chained, the
+    load halves. Keep <code>TXD</code> disconnected: the 74HC04 auto-direction circuit enables the
+    RS-485 <em>driver</em> when TXD goes low, which would put it in contention with the drive&rsquo;s own
+    line driver.</p>
+  </div>
+</section>
+
+<section id="states">
+  <div class="plate-head">
+    <span class="plate-no">Plate 07</span>
+    <h2>Operating states</h2>
+    <span class="plate-src">wiring.md &sect;6&ndash;7</span>
+  </div>
+
+  <p>Two inputs move the system: the status input on GPIO 19, which the safety switch drives
+  through relay 3, and the momentary mode button on GPIO 18. Everything else is a consequence.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg class="dg dg-wide" viewBox="0 0 900 225" role="img"
+      aria-label="State machine: INACTIVE at 0 V goes to PRE_INITIALIZED when GPIO 19 is low; holding the mode button enters INITIALIZING at a fixed 0.610 V preload; releasing it enters INITIALIZED where each channel outputs the maximum of the stream sample and the encoder-derived level. GPIO 19 going high returns to INACTIVE from any state.">
+
+      <rect class="box" x="30" y="60" width="170" height="76" rx="2" stroke="var(--en)"/>
+      <text class="t-title" x="115" y="90" text-anchor="middle" fill="var(--en)">INACTIVE</text>
+      <text class="t-sub" x="115" y="110" text-anchor="middle">status pin HIGH</text>
+      <text class="t-pin" x="115" y="158" text-anchor="middle">0 V</text>
+
+      <rect class="box" x="250" y="60" width="170" height="76" rx="2"/>
+      <text class="t-title" x="335" y="90" text-anchor="middle">PRE_INIT</text>
+      <text class="t-sub" x="335" y="110" text-anchor="middle">waiting for button</text>
+      <text class="t-pin" x="335" y="158" text-anchor="middle">0 V</text>
+
+      <rect class="box" x="470" y="60" width="170" height="76" rx="2"/>
+      <text class="t-title" x="555" y="90" text-anchor="middle">INITIALIZING</text>
+      <text class="t-sub" x="555" y="110" text-anchor="middle">fixed preload</text>
+      <text class="t-pin" x="555" y="158" text-anchor="middle">code 2000 = 0.610 V</text>
+
+      <rect class="box" x="690" y="60" width="170" height="76" rx="2" stroke="var(--an)"/>
+      <text class="t-title" x="775" y="90" text-anchor="middle" fill="var(--an)">INITIALIZED</text>
+      <text class="t-sub" x="775" y="110" text-anchor="middle">armed, counters zeroed</text>
+      <text class="t-pin" x="775" y="158" text-anchor="middle">max(stream, encoder)</text>
+
+      <g class="sig s-en">
+        <path class="wire w-en" d="M200,98 L244,98" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="222" y="90" text-anchor="middle">19 LOW</text>
+      </g>
+      <path class="wire w-ser" d="M420,98 L464,98" marker-end="url(#ah-ser)"/>
+      <text class="t-edge" x="442" y="90" text-anchor="middle">held</text>
+      <path class="wire w-ser" d="M640,98 L684,98" marker-end="url(#ah-ser)"/>
+      <text class="t-edge" x="662" y="90" text-anchor="middle">released</text>
+
+      <g class="sig s-en">
+        <path class="wire w-en dash" d="M775,136 L775,190 L115,190 L115,140" marker-end="url(#ah-en)"/>
+        <text class="t-edge" x="445" y="182" text-anchor="middle" fill="var(--en)">GPIO 19 HIGH &mdash; from any state, DAC to 0 V</text>
+      </g>
+      <text class="t-note" x="445" y="212" text-anchor="middle">button = GPIO 18, momentary to GND, 50 ms debounce</text>
+    </svg>
+    </div>
+    <figcaption>
+      <b>A restored safety switch never brings the system straight back to driving.</b> GPIO 19
+      going low only reaches <code>PRE_INIT</code>; leaving it requires a deliberate press of the
+      mode button.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <caption>Voltage presented to each drive, per state</caption>
+    <thead><tr><th>State</th><th>Channel voltage</th></tr></thead>
+    <tbody>
+      <tr><td class="m">INACTIVE</td><td>0 V &mdash; status pin 19 is high</td></tr>
+      <tr><td class="m">PRE_INITIALIZED</td><td>0 V &mdash; waiting for the button</td></tr>
+      <tr><td class="m">INITIALIZING</td><td>fixed code 2000 = <b>0.610 V</b> on both channels</td></tr>
+      <tr><td class="m">INITIALIZED</td><td><code>max(stream sample, encoder-derived level)</code> per channel</td></tr>
+      <tr><td class="m">Underrun &gt; 250 ms</td><td>ramps to 0 V over 50 ms, and back up over 50 ms on recovery</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tw">
+  <table>
+    <caption>Front panel / operator controls</caption>
+    <thead><tr><th class="m">ESP32</th><th>Control</th><th>Wiring</th><th>Behaviour</th></tr></thead>
+    <tbody>
+      <tr><td class="m">GPIO 18</td><td>Mode button</td><td>momentary switch to GND, <span class="m">INPUT_PULLUP</span></td><td><b>held</b> = INITIALIZING; <b>released</b> = INITIALIZED, encoders zeroed</td></tr>
+      <tr><td class="m">GPIO 19</td><td>Status input</td><td>relay 3 contact to GND, <span class="m">INPUT_PULLUP</span></td><td><b>HIGH (open) = INACTIVE</b>, outputs forced to 0 V. LOW permits arming.</td></tr>
+      <tr><td class="m">GPIO 14</td><td>Diagnostic</td><td>test point / scope probe</td><td class="dim">driven LOW at startup; no toggling in the firmware</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note tbd">
+    <span class="h">TBD on this plate</span>
+    <p>Connector, cable and enclosure details for the panel controls. &middot; <b>Which physical
+    drive is &ldquo;channel 1&rdquo;.</b> The firmware pairs the encoder inputs with the DAC channels, but
+    nothing ties <code>ENABLE_PIN_1</code> (GPIO 25) to the drive fed by <code>VOUT0</code> &mdash;
+    that is purely a wiring convention and must be recorded.</p>
+  </div>
+</section>
+
+<section id="scaling">
+  <div class="plate-head">
+    <span class="plate-no">Plate 08</span>
+    <h2>Signal scaling</h2>
+    <span class="plate-src">wiring.md &sect;7</span>
+  </div>
+
+  <p>Two paths reach the DAC and the larger of them wins. The <b>stream path</b> is the tactile
+  sample arriving over UART0. The <b>encoder path</b> is a torque floor that rises with
+  displacement: <code>value = 3 &times; counter &times; 32767 / 20000</code>, saturated at 32767. Pulling
+  the belt out raises the minimum force while the tactile stream still modulates above it.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg id="tfchart" class="dg" viewBox="0 0 720 380" role="img" style="max-width:740px;margin:0 auto"
+      aria-label="Transfer function: volts at the drive against encoder counts. The line rises linearly at 1.5 millivolts per count from 0 volts at 0 counts to 10 volts at 6667 counts, then clamps flat at 10 volts for all higher counts.">
+      <!-- grid -->
+      <g stroke="var(--rule-2)" stroke-width="1">
+        <line x1="70" y1="310" x2="680" y2="310"/><line x1="70" y1="256" x2="680" y2="256"/>
+        <line x1="70" y1="202" x2="680" y2="202"/><line x1="70" y1="148" x2="680" y2="148"/>
+        <line x1="70" y1="94" x2="680" y2="94"/><line x1="70" y1="40" x2="680" y2="40"/>
+      </g>
+      <line x1="70" y1="40" x2="70" y2="310" stroke="var(--rule)" stroke-width="1"/>
+      <line x1="70" y1="310" x2="680" y2="310" stroke="var(--ink-2)" stroke-width="1.25"/>
+      <g class="t-sub" text-anchor="end" fill="var(--muted)">
+        <text x="60" y="314">0</text><text x="60" y="260">2</text><text x="60" y="206">4</text>
+        <text x="60" y="152">6</text><text x="60" y="98">8</text><text x="60" y="44">10</text>
+      </g>
+      <g class="t-sub" text-anchor="middle" fill="var(--muted)">
+        <text x="70" y="330">0</text><text x="206" y="330">2 000</text><text x="341" y="330">4 000</text>
+        <text x="477" y="330">6 000</text><text x="612" y="330">8 000</text>
+      </g>
+      <text class="t-sub" x="375" y="356" text-anchor="middle">encoder counts from the zero set at arming</text>
+      <text class="t-sub" x="18" y="175" text-anchor="middle" transform="rotate(-90 18 175)">volts at the drive</text>
+
+      <polygon points="70,310 522,40 680,40 680,310" fill="var(--an)" opacity="0.10"/>
+      <line x1="522" y1="40" x2="522" y2="310" stroke="var(--an)" stroke-width="1" stroke-dasharray="4 4"/>
+      <polyline points="70,310 522,40 680,40" fill="none" stroke="var(--an)" stroke-width="2"
+        stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="522" cy="40" r="5" fill="var(--an)" stroke="var(--plate)" stroke-width="2"/>
+
+      <text class="t-edge" x="512" y="72" text-anchor="end">6 667 counts &rarr; full scale</text>
+      <text class="t-edge" x="600" y="62" text-anchor="middle">clamped at 10.000 V</text>
+      <text class="t-edge" x="300" y="215" transform="rotate(-30.9 300 215)">1.5 mV per count</text>
+
+      <!-- hover layer -->
+      <g id="tf-cursor" opacity="0" pointer-events="none">
+        <line id="tf-line" x1="0" y1="40" x2="0" y2="310" stroke="var(--ink-2)" stroke-width="1" stroke-dasharray="3 3"/>
+        <circle id="tf-dot" cx="0" cy="0" r="4.5" fill="var(--an)" stroke="var(--plate)" stroke-width="2"/>
+        <rect id="tf-box" x="0" y="0" width="132" height="38" rx="2" fill="var(--plate-3)" stroke="var(--rule)"/>
+        <text id="tf-t1" class="t-pin" x="0" y="0"></text>
+        <text id="tf-t2" class="t-pin" x="0" y="0"></text>
+      </g>
+      <rect id="tf-hit" x="70" y="40" width="610" height="270" fill="transparent" style="cursor:crosshair"/>
+    </svg>
+    </div>
+    <figcaption>
+      <b>The nominal 20 000 count clamp never binds on its own</b> &mdash; the output saturation at
+      32767 is what actually holds the ceiling, at 6 667 counts. Beyond that, pulling further adds
+      no more force. Hover the plot to read a value.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <caption>Encoder path &mdash; mapTo15bit(), irtactile-belt.ino:171</caption>
+    <thead><tr><th class="n">Encoder counts</th><th class="n">DAC code</th><th class="n">Volts</th></tr></thead>
+    <tbody>
+      <tr><td class="n">1</td><td class="n">&asymp; 4.9</td><td class="n">&asymp; 1.5 mV</td></tr>
+      <tr><td class="n">100</td><td class="n">491</td><td class="n">0.150 V</td></tr>
+      <tr><td class="n">1 000</td><td class="n">4 915</td><td class="n">1.500 V</td></tr>
+      <tr><td class="n">3 333</td><td class="n">16 383</td><td class="n">5.000 V</td></tr>
+      <tr><td class="n used">6 667</td><td class="n used">32 767</td><td class="n used">10.000 V &mdash; full scale</td></tr>
+      <tr><td class="n dim">&ge; 6 667</td><td class="n dim">32 767</td><td class="n dim">10.000 V &mdash; clamped</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tw">
+  <table>
+    <caption>Stream path &mdash; host-bridge &rarr; UART0 &rarr; ring &rarr; 6 kHz playout &rarr; DAC</caption>
+    <thead><tr><th>Stage</th><th class="n">Range</th><th class="n">Volts at the drive</th></tr></thead>
+    <tbody>
+      <tr><td>Wire sample (15-bit)</td><td class="n">0 &hellip; 32767</td><td class="n dim">&mdash;</td></tr>
+      <tr><td>DAC code</td><td class="n">0 &hellip; 32767</td><td class="n">0 &hellip; 10.000 V</td></tr>
+      <tr><td>1 LSB</td><td class="n">1</td><td class="n">0.305 mV</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="note">
+    <span class="h">Channel pairing</span>
+    <p>From <code>processData()</code>: stream slot 1 and encoder ch1 (GPIO 4/5) both feed
+    <b>DAC CH0</b>; stream slot 2 and encoder ch2 (GPIO 26/27) both feed <b>DAC CH1</b>.</p>
+  </div>
+</section>
+
+<section id="cn2">
+  <div class="plate-head">
+    <span class="plate-no">Plate 09</span>
+    <h2>CN2 connector map</h2>
+    <span class="plate-src">wiring.md &sect;10</span>
+  </div>
+
+  <p>Nine of the twenty-five conductors are used. Reproduced from the drive&rsquo;s
+  &ldquo;speed, torque control wiring diagram&rdquo; so the plates above can be checked against one list.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg class="dg" viewBox="0 0 530 212" role="img" style="max-width:620px;margin:0 auto"
+      aria-label="CN2 25-pin connector map. Used pins: 6 SigIn1 SRV-ON and 9 input common on the enable path; 13 AGND and 25 Vref on the analog path; 16 DGND, 17 and 18 PB minus and plus, 19 and 20 PA minus and plus on the encoder path. All other pins are unused.">
+      <path d="M46,76 L484,76 L490,86 L490,132 L484,142 L46,142 L40,132 L40,86 Z"
+        fill="var(--plate-2)" stroke="var(--rule)" stroke-width="1.5"/>
+
+      <!-- unused pins, top row -->
+      <g fill="none" stroke="var(--rule)" stroke-width="1.25">
+        <circle cx="60" cy="97" r="7"/><circle cx="94" cy="97" r="7"/><circle cx="128" cy="97" r="7"/>
+        <circle cx="162" cy="97" r="7"/><circle cx="196" cy="97" r="7"/><circle cx="264" cy="97" r="7"/>
+        <circle cx="298" cy="97" r="7"/><circle cx="366" cy="97" r="7"/><circle cx="400" cy="97" r="7"/>
+        <circle cx="434" cy="97" r="7"/>
+        <circle cx="77" cy="121" r="7"/><circle cx="111" cy="121" r="7"/><circle cx="315" cy="121" r="7"/>
+        <circle cx="349" cy="121" r="7"/><circle cx="383" cy="121" r="7"/><circle cx="417" cy="121" r="7"/>
+      </g>
+      <g class="pinnum" text-anchor="middle">
+        <text x="60" y="100">1</text><text x="94" y="100">2</text><text x="128" y="100">3</text>
+        <text x="162" y="100">4</text><text x="196" y="100">5</text><text x="264" y="100">7</text>
+        <text x="298" y="100">8</text><text x="366" y="100">10</text><text x="400" y="100">11</text>
+        <text x="434" y="100">12</text>
+        <text x="77" y="124">14</text><text x="111" y="124">15</text><text x="315" y="124">21</text>
+        <text x="349" y="124">22</text><text x="383" y="124">23</text><text x="417" y="124">24</text>
+      </g>
+
+      <!-- used pins -->
+      <g class="sig s-en">
+        <circle cx="230" cy="97" r="7" fill="var(--en)"/><circle cx="332" cy="97" r="7" fill="var(--en)"/>
+        <path d="M230,90 L230,56" stroke="var(--en)" stroke-width="1"/>
+        <path d="M332,90 L332,34" stroke="var(--en)" stroke-width="1"/>
+        <text class="t-edge" x="230" y="50" text-anchor="middle" fill="var(--en)">6 &middot; SigIn1 SRV-ON</text>
+        <text class="t-edge" x="332" y="28" text-anchor="middle" fill="var(--en)">9 &middot; input common, 5 V here</text>
+      </g>
+      <g class="sig s-an">
+        <circle cx="468" cy="97" r="7" fill="var(--an)"/><circle cx="451" cy="121" r="7" fill="var(--an)"/>
+        <path d="M468,90 L468,56" stroke="var(--an)" stroke-width="1"/>
+        <path d="M451,128 L451,166" stroke="var(--an)" stroke-width="1"/>
+        <text class="t-edge" x="468" y="50" text-anchor="middle" fill="var(--an)">13 &middot; AGND</text>
+        <text class="t-edge" x="451" y="180" text-anchor="middle" fill="var(--an)">25 &middot; Vref</text>
+      </g>
+      <g class="sig s-enc">
+        <circle cx="145" cy="121" r="7" fill="var(--enc)"/>
+        <circle cx="179" cy="121" r="7" fill="var(--enc)"/><circle cx="213" cy="121" r="7" fill="var(--enc)"/>
+        <circle cx="247" cy="121" r="7" fill="var(--enc)"/><circle cx="281" cy="121" r="7" fill="var(--enc)"/>
+        <path d="M145,128 L145,190" stroke="var(--enc)" stroke-width="1"/>
+        <path d="M179,128 L179,150 L213,150 L213,128 M196,150 L196,166" stroke="var(--enc)" stroke-width="1" fill="none"/>
+        <path d="M247,128 L247,158 L281,158 L281,128 M264,158 L264,184" stroke="var(--enc)" stroke-width="1" fill="none"/>
+        <text class="t-edge" x="145" y="198" text-anchor="middle" fill="var(--enc)">16 &middot; DGND</text>
+        <text class="t-edge" x="196" y="180" text-anchor="middle" fill="var(--enc)">18/17 &middot; PB&plusmn;</text>
+        <text class="t-edge" x="264" y="198" text-anchor="middle" fill="var(--enc)">20/19 &middot; PA&plusmn;</text>
+      </g>
+      <g class="pinnum-on" text-anchor="middle">
+        <text x="230" y="100">6</text><text x="332" y="100">9</text><text x="468" y="100">13</text>
+        <text x="145" y="124">16</text><text x="179" y="124">17</text><text x="213" y="124">18</text>
+        <text x="247" y="124">19</text><text x="281" y="124">20</text><text x="451" y="124">25</text>
+      </g>
+    </svg>
+    </div>
+    <figcaption>
+      Filled pins are wired; hollow pins are available and unwired. Each <span class="m">SigIn</span>
+      has a 5 k&Omega; series resistor into its optocoupler; <span class="m">Vref</span> enters through
+      10 k&Omega; into an op-amp with a 10 k&Omega; leg to analog ground.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <caption>CN2 &mdash; control I/O, complete</caption>
+    <thead><tr><th class="n">Pin</th><th>Signal</th><th>Function</th><th>Used</th></tr></thead>
+    <tbody>
+      <tr><td class="n"><span class="pd pd-en"></span>9</td><td class="m">DC12~24V</td><td>digital input common (anode side)</td><td class="used">5 V here</td></tr>
+      <tr><td class="n"><span class="pd pd-en"></span>6</td><td class="m">SigIn1</td><td>SRV-ON</td><td class="used">enable, via relay</td></tr>
+      <tr><td class="n"><span class="pd pd-an"></span>25</td><td class="m">Vref</td><td>speed/torque analog command, &minus;10&hellip;+10 V</td><td class="used">&larr; DAC</td></tr>
+      <tr><td class="n"><span class="pd pd-an"></span>13</td><td class="m">AGND</td><td>analog ground</td><td class="used">&larr; DAC GND</td></tr>
+      <tr><td class="n"><span class="pd pd-enc"></span>20 / 19</td><td class="m">PA+ / PA&minus;</td><td>A phase pulse output</td><td class="used">&rarr; PCNT A</td></tr>
+      <tr><td class="n"><span class="pd pd-enc"></span>18 / 17</td><td class="m">PB+ / PB&minus;</td><td>B phase pulse output</td><td class="used">&rarr; PCNT B</td></tr>
+      <tr><td class="n"><span class="pd pd-enc"></span>16</td><td class="m">GND (DGND)</td><td>pulse output common</td><td class="used">&rarr; ESP32 GND</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>7</td><td class="m dim">SigIn2</td><td class="dim">Alarm Reset</td><td class="dim">would clear a fault without a power cycle</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>21</td><td class="m dim">SigIn3</td><td class="dim">Position deviation clear</td><td class="dim">&mdash;</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>8</td><td class="m dim">SigIn4</td><td class="dim">ZEROSPD</td><td class="dim">&mdash;</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>10</td><td class="m dim">COM</td><td class="dim">common for inputs and outputs</td><td class="dim">TBD</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>11</td><td class="m dim">SigOut1</td><td class="dim"><b>SRV-READY</b> &mdash; open collector</td><td class="dim">unwired</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>23</td><td class="m dim">SigOut2</td><td class="dim"><b>Alarm detection</b> &mdash; open collector</td><td class="dim">unwired &mdash; faults are invisible</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>12</td><td class="m dim">SigOut3</td><td class="dim">Position completed</td><td class="dim">&mdash;</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>24</td><td class="m dim">SigOut4</td><td class="dim">Zero speed</td><td class="dim">&mdash;</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>15 / 14</td><td class="m dim">PZ+ / PZ&minus;</td><td class="dim">Z phase (index) pulse output</td><td class="dim">available for homing</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>22</td><td class="m dim">OZ</td><td class="dim">Z open-collector output</td><td class="dim">&mdash;</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tw">
+  <table>
+    <caption>CN1 communication (unused) &amp; CN3 motor encoder (factory cable)</caption>
+    <thead><tr><th>Connector</th><th class="m">Pins</th><th>Signal</th></tr></thead>
+    <tbody>
+      <tr><td>CN1</td><td class="m">2</td><td>+5 V power</td></tr>
+      <tr><td>CN1</td><td class="m">4 / 6</td><td>RS-485 A / B &mdash; how drive parameters are set from a PC</td></tr>
+      <tr><td>CN1</td><td class="m">1 / 3</td><td>RS-232 Tx / Rx</td></tr>
+      <tr><td>CN1</td><td class="m">5</td><td>Gnd</td></tr>
+      <tr><td>CN3</td><td class="m">8 / 15 / 14</td><td>+5 V / GND / PE</td></tr>
+      <tr><td>CN3</td><td class="m">3&middot;11 / 10&middot;2 / 1&middot;9</td><td>A&plusmn; / B&plusmn; / Z&plusmn; &mdash; the PA/PB outputs on CN2 are the drive&rsquo;s buffered copy of these</td></tr>
+      <tr><td>CN3</td><td class="m">6&middot;7 / 13&middot;12 / 5&middot;4</td><td>U&plusmn; / V&plusmn; / W&plusmn; hall</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="power">
+  <div class="plate-head">
+    <span class="plate-no">Plate 10</span>
+    <h2>Power &amp; grounding</h2>
+    <span class="plate-src">wiring.md &sect;8</span>
+  </div>
+
+  <p>The enable path is opto-isolated at the drive. The analog command and the encoder common are
+  not &mdash; they are shared nets, and through the devkit they reach USB ground and the host PC.</p>
+
+  <figure>
+    <div class="fig-scroll">
+    <svg class="dg dg-wide" viewBox="0 0 760 220" role="img"
+      aria-label="Ground domains: the control domain referenced to USB 0 V contains the ESP32, DAC ground, RS-485 module grounds and relay logic. The SRV-ON enable crosses the AASD-15A boundary through an optocoupler and is isolated. AGND on pin 13 and DGND on pin 16 cross the same boundary as shared conductors.">
+      <rect class="box-o" x="20" y="40" width="320" height="160" rx="2"/>
+      <text class="t-title" x="32" y="62">CONTROL DOMAIN</text>
+      <text class="t-sub" x="32" y="78">USB 0 V reference &rarr; host PC</text>
+      <text class="t-pin" x="32" y="104">ESP32 devkit</text>
+      <text class="t-pin" x="32" y="122">GP8413 ground</text>
+      <text class="t-pin" x="32" y="140">RS-485 module grounds</text>
+      <text class="t-pin" x="32" y="158">relay board input side</text>
+      <text class="t-pin" x="32" y="176">3.3 V &amp; 5 V USB rails</text>
+
+      <rect class="box-o" x="440" y="40" width="300" height="160" rx="2"/>
+      <text class="t-title" x="452" y="62">DRIVE INTERNAL</text>
+      <text class="t-sub" x="452" y="78">power ground / PE</text>
+      <text class="t-pin" x="452" y="104">drive logic &amp; opto secondary</text>
+      <text class="t-pin" x="452" y="122">220 V mains, U/V/W</text>
+      <text class="t-pin" x="452" y="140">motor frame, PE</text>
+
+      <line x1="390" y1="24" x2="390" y2="210" stroke="var(--muted)" stroke-width="1.25" stroke-dasharray="5 4"/>
+      <text class="t-note" x="390" y="16" text-anchor="middle">AASD-15A boundary</text>
+
+      <g class="sig s-en">
+        <path class="wire w-en thin" d="M340,74 L380,74"/>
+        <path class="wire w-en thin" d="M400,74 L436,74" marker-end="url(#ah-en)"/>
+        <path d="M383,68 L387,74 L383,80 M397,68 L393,74 L397,80" fill="none" stroke="var(--en)" stroke-width="1.5"/>
+        <text class="t-edge" x="390" y="100" text-anchor="middle" fill="var(--en)">ISOLATED</text>
+      </g>
+      <g class="sig s-an">
+        <path class="wire w-an thin" d="M340,128 L436,128" marker-end="url(#ah-an)"/>
+        <text class="t-edge" x="390" y="120" text-anchor="middle" fill="var(--an)">SHARED</text>
+      </g>
+      <g class="sig s-enc">
+        <path class="wire w-enc thin" d="M340,172 L436,172" marker-end="url(#ah-enc)"/>
+        <text class="t-edge" x="390" y="164" text-anchor="middle" fill="var(--enc)">SHARED</text>
+      </g>
+      <text class="t-sub" x="336" y="66" text-anchor="end">SRV-ON</text>
+      <text class="t-sub" x="336" y="146" text-anchor="end">AGND pin 13</text>
+      <text class="t-sub" x="336" y="190" text-anchor="end">DGND pin 16</text>
+    </svg>
+    </div>
+    <figcaption>
+      <b>One barrier, three crossings, one of them broken.</b> The star return topology removes the
+      drive-to-drive coupling on AGND, but not the path back to the PC.
+    </figcaption>
+  </figure>
+
+  <div class="tw">
+  <table>
+    <caption>Supplies as built</caption>
+    <thead><tr><th>Item</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td>ESP32 supply</td><td>USB, CH340 devkit</td></tr>
+      <tr><td>Relay coils (&times;3)</td><td>5 V from the USB rail &mdash; <span class="m">JD-VCC</span>, unswitched</td></tr>
+      <tr><td>Relay board input side</td><td>3.3 V <b>through the safety switch</b> &mdash; <span class="m">VCC</span></td></tr>
+      <tr><td>AASD-15A servo-on opto supply</td><td>5 V from the USB rail (drive pin 9), below the datasheet&rsquo;s 12&ndash;24 V, deliberately</td></tr>
+      <tr><td>RS-485&rarr;TTL receiver modules (&times;4)</td><td>3.3 V from the ESP32 devkit&rsquo;s 3V3 rail</td></tr>
+      <tr><td>E-stop / kill chain</td><td>safety switch in the 3.3 V supply to the relay board inputs &mdash; low voltage, low current, no special rating</td></tr>
+      <tr><td>GP8413 supply</td><td>5 V from the USB rail, single rail &mdash; on-board boost makes the 0&ndash;10 V output</td></tr>
+      <tr><td class="dim">Drive mains supply</td><td class="dim">220 V into L1/L2/L3 + PE &mdash; TBD: single or three phase, and via what filter/breaker</td></tr>
+      <tr><td class="dim">Motor cabling</td><td class="dim">U/V/W + PE &mdash; TBD: cable type and gland/shield termination</td></tr>
+      <tr><td class="dim">Motor encoder cabling</td><td class="dim">CN3, 15-way &mdash; TBD: supplied cable or made up?</td></tr>
+      <tr><td class="dim">Ground topology (star point)</td><td class="dim">TBD &mdash; the enable path is opto-isolated, the analog command is not</td></tr>
+      <tr><td class="dim">Shielding and earth bonding</td><td class="dim">TBD</td></tr>
+      <tr><td class="dim">Fusing</td><td class="dim">TBD</td></tr>
+    </tbody>
+  </table>
+  </div>
+
+  <div class="tw">
+  <table>
+    <caption>Host connections</caption>
+    <thead><tr><th>Link</th><th>Cable</th><th>Notes</th></tr></thead>
+    <tbody>
+      <tr><td>Data</td><td>USB &rarr; CH340 on the devkit</td><td>1 200 000 baud, <b>host &rarr; device only</b>. DTR/RTS must stay deasserted or the CH340 auto-reset circuit reboots the ESP32 mid-stream.</td></tr>
+      <tr><td>Logging</td><td>USB-TTL adapter on GPIO 17, or a second ESP32 running <span class="m">tools/logger/logger.ino</span></td><td>115 200 baud, device &rarr; host only. <b>Required equipment</b> &mdash; the drift-lock pass criterion is only observable here.</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section id="open">
+  <div class="plate-head">
+    <span class="plate-no">&mdash;</span>
+    <h2>Open items</h2>
+    <span class="plate-src">30 unverified against the build</span>
+  </div>
+
+  <p>Everything on the ESP32 side is read out of the firmware and is authoritative. Everything on
+  the drive side &mdash; terminal numbers, connector pinouts, level shifting, supplies &mdash; needs
+  confirming against the physical build. Collected here so the list can be worked through in one
+  pass with the harness in hand.</p>
+
+  <div class="oi">
+    <div class="oi-card">
+      <h3>Boot &amp; strapping <span>Plate 02 &middot; 2</span></h3>
+      <ul>
+        <li>Power-cycle <b>ten times with the safety switch closed</b>, after moving drive 1&rsquo;s enable from GPIO 12 to GPIO 25. All ten must boot &mdash; this is the regression test for the strapping problem, replacing the old &ldquo;measure GPIO 12 at reset&rdquo; item.</li>
+        <li>Confirm the GP8413 <b>powers up at 0 V on both channels</b> &mdash; the drives are enabled a few hundred &micro;s before the range register is written. If not, move the enable writes after <code>dac.begin()</code>.</li>
+      </ul>
+    </div>
+
+    <div class="oi-card">
+      <h3>DAC &amp; analog run <span>Plate 03 &middot; 5</span></h3>
+      <ul>
+        <li>External I&sup2;C pull-up value actually fitted &mdash; internal ~45 k&Omega; is marginal at 1 MHz.</li>
+        <li>Shielded pair for the command run, shield grounded at one end.</li>
+      </ul>
+    </div>
+
+    <div class="oi-card">
+      <h3>Drive parameters <span>Plate 03 &middot; 7</span></h3>
+      <ul>
+        <li>Control mode &mdash; must be <b>torque</b>, analog command.</li>
+        <li>Analog input full-scale voltage &mdash; 10 V must be the intended maximum torque.</li>
+        <li>Analog input gain (torque per volt) &mdash; sets the belt&rsquo;s force scaling.</li>
+        <li>Analog input offset / zero &mdash; <b>0 V must be exactly zero torque</b>, not a bipolar mid-scale.</li>
+        <li>Analog input dead band.</li>
+        <li>Torque / current limit &mdash; the safety ceiling independent of the command.</li>
+        <li>Speed limit in torque mode &mdash; <b>required</b>; torque mode is otherwise unbounded in speed.</li>
+      </ul>
+    </div>
+
+    <div class="oi-card">
+      <h3>Enable path <span>Plate 05 &middot; 5</span></h3>
+      <ul>
+        <li>Which connector on the AASD-15A carries pin 6.</li>
+        <li>Is <code>COM(10)</code> wired, or does the relay go straight to USB 0 V?</li>
+        <li>How the unused digital inputs are left (floating is inactive here).</li>
+        <li>Whether GPIO 19&rsquo;s status input is fed from <span class="m">SigOut1</span> (SRV-READY) or something else.</li>
+        <li>5 V current budget &mdash; two coils at ~70&ndash;80 mA plus the ESP32 on one USB rail.</li>
+      </ul>
+    </div>
+
+    <div class="oi-card">
+      <h3>Encoder receivers <span>Plate 06 &middot; 2</span></h3>
+      <ul>
+        <li>Confirm the exact transceiver marking (MAX3485-type assumed).</li>
+        <li>Confirm <b>only the module terminates</b> &mdash; a second 120 &Omega; halves the load.</li>
+      </ul>
+    </div>
+
+    <div class="oi-card">
+      <h3>Panel &amp; identity <span>Plate 07 &middot; 2</span></h3>
+      <ul>
+        <li>Connector, cable and enclosure details for the panel controls.</li>
+        <li><b>Which physical drive is &ldquo;channel 1&rdquo;</b> &mdash; nothing ties <code>ENABLE_PIN_1</code> to the drive fed by <code>VOUT0</code>.</li>
+      </ul>
+    </div>
+
+    <div class="oi-card">
+      <h3>Power &amp; grounding <span>Plate 10 &middot; 7</span></h3>
+      <ul>
+        <li>Mains: single or three phase, and via what filter / breaker.</li>
+        <li>Motor cable type and gland / shield termination.</li>
+        <li>CN3 encoder cable &mdash; supplied or made up?</li>
+        <li>Ground topology &mdash; star point, analog vs. power ground.</li>
+        <li>Shielding and earth bonding.</li>
+        <li>Where the safety switch is mounted, and fusing.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<footer class="sheet">
+  Drawn from <b>docs/hardware/wiring.md</b>. ESP32-side values are authoritative &mdash; they are read
+  out of <b>controller-firmware/src/irtactile-belt/</b>. Drive-side terminal numbers follow the
+  AASD-15A &ldquo;speed, torque control wiring diagram&rdquo;. Items marked TBD are unverified against
+  the physical build.
+</footer>
+
+<script>
+(function(){
+  var chips = Array.prototype.slice.call(document.querySelectorAll('.chip'));
+  chips.forEach(function(c){
+    c.addEventListener('click', function(){
+      var on = c.getAttribute('aria-pressed') === 'true';
+      chips.forEach(function(o){ o.setAttribute('aria-pressed','false'); });
+      if(on){ delete document.body.dataset.focus; }
+      else { c.setAttribute('aria-pressed','true'); document.body.dataset.focus = c.dataset.sig; }
+    });
+  });
+
+  var links = Array.prototype.slice.call(document.querySelectorAll('nav a'));
+  var secs = links.map(function(a){ return document.querySelector(a.getAttribute('href')); });
+  var io = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){
+      var i = secs.indexOf(e.target);
+      if(i < 0) return;
+      if(e.isIntersecting){
+        links.forEach(function(l){ l.removeAttribute('aria-current'); });
+        links[i].setAttribute('aria-current','true');
+      }
+    });
+  }, {rootMargin:'-56px 0px -70% 0px'});
+  secs.forEach(function(s){ if(s) io.observe(s); });
+
+  // transfer-function readout
+  var svg = document.getElementById('tfchart');
+  var hit = document.getElementById('tf-hit');
+  if(svg && hit){
+    var cur=document.getElementById('tf-cursor'), ln=document.getElementById('tf-line'),
+        dot=document.getElementById('tf-dot'), bx=document.getElementById('tf-box'),
+        t1=document.getElementById('tf-t1'), t2=document.getElementById('tf-t2');
+    var fmt = function(n,d){ return n.toFixed(d).replace(/\B(?=(\d{3})+(?!\d))/, ' '); };
+    var move = function(e){
+      var r = svg.getBoundingClientRect();
+      var vx = (e.clientX - r.left) / r.width * 720;
+      vx = Math.max(70, Math.min(680, vx));
+      var counts = (vx - 70) / 610 * 9000;
+      var v = Math.min(10, counts * 0.0015);
+      var vy = 310 - v / 10 * 270;
+      ln.setAttribute('x1', vx); ln.setAttribute('x2', vx);
+      dot.setAttribute('cx', vx); dot.setAttribute('cy', vy);
+      var bxX = vx > 520 ? vx - 142 : vx + 10;
+      var bxY = Math.max(44, Math.min(266, vy - 46));
+      bx.setAttribute('x', bxX); bx.setAttribute('y', bxY);
+      t1.setAttribute('x', bxX + 10); t1.setAttribute('y', bxY + 16);
+      t2.setAttribute('x', bxX + 10); t2.setAttribute('y', bxY + 30);
+      t1.textContent = fmt(Math.round(counts), 0) + ' counts';
+      t2.textContent = fmt(v, 3) + ' V' + (counts >= 6667 ? '  clamped' : '');
+      cur.setAttribute('opacity', '1');
+    };
+    hit.addEventListener('pointermove', move);
+    hit.addEventListener('pointerleave', function(){ cur.setAttribute('opacity','0'); });
+  }
+})();
+</script>
+</body>
+</html>

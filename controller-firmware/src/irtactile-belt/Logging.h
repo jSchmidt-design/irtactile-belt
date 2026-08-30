@@ -120,6 +120,29 @@ inline void logPlayLine(bool configured, const dac_health_t &h) {
                  (unsigned long)h.missedTicks);
 }
 
+// Force-curve diagnostics: a line when the parameters change, and one at each
+// edge of the tuning floor hold. The hold suspends the dead-host release, so
+// the bench needs to see it.
+inline void logTuning(bool holdActive, uint16_t fullScaleCounts, uint8_t gammaQ) {
+  static bool s_lastHold = false;
+  static uint16_t s_lastFs = 0;
+  static uint8_t s_lastGq = 0;
+  static bool s_first = true;
+
+  if (s_first || fullScaleCounts != s_lastFs || gammaQ != s_lastGq) {
+    s_lastFs = fullScaleCounts;
+    s_lastGq = gammaQ;
+    Serial1.printf("TUNING: fullScale=%u gammaQ=%u\n",
+                   (unsigned)fullScaleCounts, (unsigned)gammaQ);
+  }
+  s_first = false;
+
+  if (holdActive != s_lastHold) {
+    s_lastHold = holdActive;
+    Serial1.printf("TUNING: floor hold %s\n", holdActive ? "asserted" : "released");
+  }
+}
+
 // Raw counts on purpose: the diagnostic view shows what the hardware register
 // holds. The wrap counts alongside stay 0 through a normal session; non-zero
 // means a belt was pulled past the wrap. Reading them from the other core is a

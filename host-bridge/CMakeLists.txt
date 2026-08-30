@@ -95,6 +95,28 @@ target_link_libraries(irTactileSerialBridge PRIVATE irtactile::stream-shm shmlog
 target_compile_features(irTactileSerialBridge PRIVATE cxx_std_20)
 
 # -----------------------------------------------------------------------------
+# belt-tune
+#
+# Interactive tool that sets the runtime-tunable encoder force curve (full-scale
+# pull count + gamma) over the serial link. It links only the serial and framing
+# code - no irtactile-shm, no shmlog. The two shared sources are compiled
+# directly rather than through a static library, matching tests/CMakeLists.txt.
+#
+# --target belt-tune still triggers the FetchContent calls above, which run
+# unconditionally at configure time. The reduced footprint is at the source and
+# link level, not the configure level.
+# -----------------------------------------------------------------------------
+add_executable(belt-tune
+    src/BeltTuneMain.cpp
+    src/TuningFrame.cpp
+    src/TuningFrame.h
+    src/SerialPort.cpp
+    src/SerialPort.h
+)
+target_include_directories(belt-tune PRIVATE src)
+target_compile_features(belt-tune PRIVATE cxx_std_20)
+
+# -----------------------------------------------------------------------------
 # Tests
 #
 # Everything the bridge decides without touching the stream or the port:

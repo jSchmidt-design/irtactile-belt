@@ -1,12 +1,15 @@
 
 #include <Arduino.h>
 
+#include <Preferences.h>
+
 #include "GP8413_DAC.h"
 #include "driver/uart.h"
 #include "Pins.h"
 #include "SampleRing.h"
 #include "Playout.h"
 #include "SerialDecoder.h"
+#include "ForceCurve.h"
 #include "Counter.h"
 #include "BeltState.h"
 #include "Logging.h"
@@ -27,9 +30,10 @@
 
 void dataHandler(uint16_t data[2]);
 void configHandler(uint32_t rateMilliHz, uint16_t blockSamples);
+void tuningHandler(uint16_t fullScaleCounts, uint8_t gammaQ);
 
 GP8413_DAC dac;
-SerialDecoder decoder(dataHandler, configHandler);
+SerialDecoder decoder(dataHandler, configHandler, tuningHandler);
 SampleRing sampleRing;
 Playout playout;
 
@@ -45,6 +49,49 @@ volatile uint32_t g_rateMilliHz = 6000u * 1000u;
 volatile uint16_t g_blockSamples = 16;
 volatile uint32_t g_configGen = 0;
 volatile bool g_configured = false;
+
+// Encoder force-curve parameters. Written by tuningHandler() (serialTask,
+// core 0) and by tuningLoad() at boot, read by loop() (core 1), which rebuilds
+// the LUT on a generation bump. Aligned single words, published after write -
+// the same ordering the arming path uses (BeltState.h). The defaults reproduce
+// the old fixed linear ramp.
+volatile uint16_t g_fullScaleCounts = DEFAULT_FULL_SCALE_COUNTS;
+volatile uint8_t g_gammaQ = DEFAULT_GAMMA_Q;
+volatile uint32_t g_tuningGen = 0;
+
+// Double-buffered force curve. loop() builds into the spare slot and then
+// publishes the index; processData() (core 0) snapshots the index once per tick
+// so ch0 and ch1 cannot straddle a swap. Internal SRAM, coherent across cores.
+ForceCurve g_curves[2];
+volatile uint8_t g_curveIndex = 0;
+
+// Tuning hold. belt-tune holds the port exclusively, so while it is connected
+// there is no sample stream and the playout starves. A valid tuning header
+// pushes g_tuningHoldUntilTick forward and arms the hold; dacTask holds the
+// encoder floor gain up until g_dacTicks passes the deadline, then disarms.
+// A refreshed deadline, never a latch: unplug the USB mid-pull and the belt
+// releases on its own, as a dead host does.
+//
+// The armed flag bounds how old a deadline can get. dacTask's signed-difference
+// compare survives the wrap of g_dacTicks only while the deadline is recent:
+// once g_dacTicks has passed it by 2^31 (4.1 days at 6 kHz) a stale deadline
+// reads as being in the future again. Clearing the flag on the first tick past
+// the deadline keeps one from ageing that far.
+//
+// TUNING_HOLD_TICKS mirrors UNDERRUN_SILENCE_TICKS (Playout.h): 250 ms, i.e. 5
+// missed headers of tolerance at belt-tune's 20 Hz cadence and a ~300 ms
+// release, the same as the dead-host latency.
+#define TUNING_HOLD_TICKS (DAC_TICK_HZ / 4)
+volatile uint32_t g_dacTicks = 0;
+volatile uint32_t g_tuningHoldUntilTick = 0;
+volatile bool g_tuningHoldArmed = false;
+
+// NVS-persisted tuning. Plain statics: only ever touched from loop() on core 1.
+// The shadow copies are what a commit compares against, so idle resends of the
+// same values never touch flash.
+Preferences g_tuningPrefs;
+static uint16_t s_persistedFullScale = DEFAULT_FULL_SCALE_COUNTS;
+static uint8_t s_persistedGammaQ = DEFAULT_GAMMA_Q;
 
 // DAC write failure counters. Written by dacTask (core 0) in writeDac(), read
 // by loop() (core 1) for the PLAY line - aligned 32-bit, so each is read
@@ -145,6 +192,56 @@ void configHandler(uint32_t rateMilliHz, uint16_t blockSamples) {
   g_configGen = g_configGen + 1;
 }
 
+// A tuning header arrived (serialTask, same core as dacTask). Two jobs:
+//
+//  1. Push the floor-hold deadline forward - on every valid header, before the
+//     change check, so the belt stays live for TUNING_HOLD_TICKS after the last.
+//  2. Publish the curve parameters, but only on a real change, so a 20 Hz
+//     stream of identical headers does not bump the generation forever. The
+//     clamp runs first, so the debounce compares clamped values.
+//
+// No flash write here; persistence is deferred to a settle point in loop().
+void tuningHandler(uint16_t fullScaleCounts, uint8_t gammaQ) {
+  forceCurveClamp(fullScaleCounts, gammaQ);
+
+  // Deadline before the flag: dacTask must never see the hold armed against a
+  // stale deadline.
+  g_tuningHoldUntilTick = g_dacTicks + TUNING_HOLD_TICKS;
+  g_tuningHoldArmed = true;
+
+  if (g_fullScaleCounts == fullScaleCounts && g_gammaQ == gammaQ) return;
+  g_fullScaleCounts = fullScaleCounts;
+  g_gammaQ = gammaQ;
+  g_tuningGen = g_tuningGen + 1;
+}
+
+// Load the persisted curve at boot. Called from setup() after disableWifi(),
+// which brings NVS up (nvs_flash_init). Clamps whatever came back - a bad
+// persisted value must not survive a reboot - then seeds the live volatiles and
+// the shadow.
+void tuningLoad() {
+  g_tuningPrefs.begin("tuning", false);
+  uint16_t fs = g_tuningPrefs.getUShort("fscnt", DEFAULT_FULL_SCALE_COUNTS);
+  uint8_t gq = g_tuningPrefs.getUChar("gammaq", DEFAULT_GAMMA_Q);
+  forceCurveClamp(fs, gq);
+  g_fullScaleCounts = fs;
+  g_gammaQ = gq;
+  s_persistedFullScale = fs;
+  s_persistedGammaQ = gq;
+}
+
+// Commit the live curve to flash if it differs from the shadow, so idle resends
+// never erase a sector. Called only from the INACTIVE settle point in loop().
+void tuningCommitIfChanged() {
+  const uint16_t fs = g_fullScaleCounts;
+  const uint8_t gq = g_gammaQ;
+  if (fs == s_persistedFullScale && gq == s_persistedGammaQ) return;
+  g_tuningPrefs.putUShort("fscnt", fs);
+  g_tuningPrefs.putUChar("gammaq", gq);
+  s_persistedFullScale = fs;
+  s_persistedGammaQ = gq;
+}
+
 // Unrecoverable initialisation failure. Stopping is not by itself safe: the
 // enables are a static GPIO level that setup() has already driven LOW by the
 // time either caller can fail, so a bare spin leaves both drives energised
@@ -184,27 +281,12 @@ void timerSetupTask(void *pvParameters) {
 }
 
 
-const uint16_t maxCounter = 20000;
-const uint16_t max15bit = 32767;
-
-// Encoder-to-DAC gain. 3 * 32767 / 20000 ~= 4.9 LSB per count (about 1.5 mV
-// into the 10 V range), so full scale is reached at 6667 counts and the
-// maxCounter clamp never binds on its own.
-//
-// That saturation point is where "more pull" stops meaning "more force": see
-// WrapTracker.h. It is duplicated as FULL_SCALE_COUNTS in
-// tests/counter_test.cpp - change both together.
-#define ENCODER_FORCE_GAIN 3
-
-// Encoder counts -> DAC level. The saturation on the way out holds the ceiling:
-// without it the uint16 wraps and the floor collapses to near zero exactly when
-// it should be hardest.
-uint16_t mapTo15bit(uint16_t counter) {
-
-  if (counter > maxCounter) counter = maxCounter;
-  uint32_t value = ENCODER_FORCE_GAIN * (uint32_t)counter * max15bit / maxCounter;
-  if (value > max15bit) value = max15bit;
-  return (uint16_t)value;
+// Encoder counts -> the force floor for that pull, via the runtime curve. The
+// lookup clamps counter to the curve's full-scale count and holds the ceiling
+// there. The caller passes the curve - one snapshot for both channels, so ch0
+// and ch1 cannot straddle a LUT swap.
+uint16_t forceFloor(const ForceCurve &curve, uint16_t counter) {
+  return forceCurveLookup(curve, counter);
 }
 
 // Every DAC write goes through here, so exactly one place looks at the result.
@@ -252,6 +334,11 @@ void processData(uint16_t ch0, uint16_t ch1){
   const int status = g_status;
   const uint16_t preload = g_preloadLevel;
 
+  // Snapshot the curve index once, same idiom as the status above: loop() can
+  // publish a new index from the other core mid-call, and both floor terms must
+  // use the same LUT.
+  const ForceCurve &curve = g_curves[g_curveIndex];
+
   if(status == Status::INITIALIZING && preload > 0){
     // Button-held preload: deliberate, host-independent, and not ramped.
     writeDac(preload, preload);
@@ -265,18 +352,20 @@ void processData(uint16_t ch0, uint16_t ch1){
     // that runs every tick, which is what the tracker needs.
     CounterStatus cnt = counter->getCountsTracked();
 
-    // The encoder-derived floor is scaled by the same playout gain the stream
-    // sample carries, so the silence ramp governs the *final* output and not
-    // just the stream - this is what makes a dead host release the belts.
+    // The encoder-derived floor is scaled by the playout's floor gain, so the
+    // silence ramp governs the *final* output and not just the stream - this is
+    // what makes a dead host release the belts.
     //
-    // Scaling each term is equivalent to scaling the combined value -
-    // max(g*s, g*f) == g*max(s, f) - so the stream is not gained twice.
-    const uint32_t gain = playout.gainQ16();
+    // With no tuning hold active, floorGainQ16() == gainQ16() and scaling each
+    // term is equivalent to scaling the combined value - max(g*s, g*f) ==
+    // g*max(s, f), so the stream is not gained twice. During a hold the two
+    // gains diverge: the stream ramps down while the floor is held up.
+    const uint32_t gain = playout.floorGainQ16();
     if(cnt.ch0>0){
-      ch0= max(ch0, (uint16_t)(((uint32_t)mapTo15bit(cnt.ch0) * gain) >> 16));
+      ch0= max(ch0, (uint16_t)(((uint32_t)forceFloor(curve, cnt.ch0) * gain) >> 16));
     }
     if(cnt.ch1>0){
-      ch1= max(ch1, (uint16_t)(((uint32_t)mapTo15bit(cnt.ch1) * gain) >> 16));
+      ch1= max(ch1, (uint16_t)(((uint32_t)forceFloor(curve, cnt.ch1) * gain) >> 16));
     }
 
     writeDac(ch0, ch1);
@@ -303,6 +392,25 @@ void dacTask(void *pvParameters) {
 
     // Scope trigger, HIGH for the whole of this tick's work. See DIAG_PIN.
     DIAG_HIGH();
+
+    // Free-running tick count, the time base for the tuning hold. Advanced by
+    // `pending`, not by one, so ticks that fired while this task was still in
+    // the previous one still count as elapsed time. Integer-only: nothing on
+    // this path calls millis().
+    g_dacTicks += pending;
+
+    // Signed difference so the compare survives the counter wrap, guarded by
+    // the armed flag so an expired deadline is retired within a tick and cannot
+    // come back round as a future one. See g_tuningHoldArmed.
+    bool floorHold = false;
+    if (g_tuningHoldArmed) {
+      if ((int32_t)(g_dacTicks - g_tuningHoldUntilTick) < 0) {
+        floorHold = true;
+      } else {
+        g_tuningHoldArmed = false;
+      }
+    }
+    playout.setFloorHold(floorHold);
 
     // Pick up a new stream configuration.
     if (seenGen != g_configGen) {
@@ -389,6 +497,12 @@ void setup() {
 
   disableWifi();
 
+  // NVS is up now (disableWifi calls nvs_flash_init). Load the persisted force
+  // curve and build the initial LUT before the tasks start, so processData()
+  // never reads an unbuilt g_curves[0].
+  tuningLoad();
+  buildForceCurve(g_fullScaleCounts, g_gammaQ, g_curves[0]);
+
   pinMode(DIAG_PIN, OUTPUT);
   DIAG_LOW();
 
@@ -461,6 +575,31 @@ void loop() {
 
   const BeltUpdate belt = beltStateUpdate(counter);
 
+  // Rebuild the force-curve LUT here, off the tick path: 65 powf calls is
+  // ~100-250 us, a whole DAC tick, and would give dacTask an FPU context to
+  // save on every context switch. Build into the spare slot, then publish the
+  // index.
+  static uint32_t seenTuningGen = 0;
+  const uint32_t tuningGen = g_tuningGen;
+  if (tuningGen != seenTuningGen) {
+    seenTuningGen = tuningGen;
+    const uint8_t next = 1 - g_curveIndex;
+    buildForceCurve(g_fullScaleCounts, g_gammaQ, g_curves[next]);
+    g_curveIndex = next;
+  }
+
+  // Persist the live curve on the entry to INACTIVE, where the DAC output is a
+  // constant: INACTIVE writes writeDac(0, 0). A flash sector erase disables the
+  // instruction cache on both cores for ~20-40 ms, so the stall must land on
+  // ticks whose value does not change. INITIALIZING (an unramped preload) is
+  // also constant, but the safety switch is the one settle point we commit at:
+  // every mode-button press re-enters INITIALIZING, so committing there would
+  // erase a sector on each press for no gain over the shadow check.
+  // This commit point is not freely relocatable.
+  if (belt.status == Status::INACTIVE && belt.prevStatus != Status::INACTIVE) {
+    tuningCommitIfChanged();
+  }
+
   logDrivesRestored(belt);
   logStatusTransition(belt);
   logPins(belt);
@@ -468,6 +607,10 @@ void loop() {
 
   const dac_health_t health = { g_dacFailTotal, g_dacFailRun, g_missedTicks };
   logPlayLine(g_configured, health);
+
+  // dacTask retires the deadline on the first tick past it, so the armed flag
+  // alone is the hold state.
+  logTuning(g_tuningHoldArmed, g_fullScaleCounts, g_gammaQ);
 
   logCounts(counter);
 
