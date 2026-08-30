@@ -204,12 +204,24 @@ always go to the console, because they happen before the logger exists.
 
 `belt-tune` is a second, separate executable in this tree. It sets the
 controller's **runtime-tunable encoder force curve** over the serial link,
-without a reflash:
+without a reflash.
+
+The force curve is what decides **how much the wearer can move against the belt
+while it is active**. When the belt is driven, pulling against it winds the
+encoder up from its zero; the firmware turns that count into a resisting force
+floor that climbs along the curve until it saturates. Past that point the belt
+gives no further and the pull has effectively stopped. `belt-tune` reshapes that
+climb — the total travel it allows and where in the travel the resistance builds:
 
 | Parameter | Meaning |
 |---|---|
-| `fullScaleCounts` | encoder counts of pull before the force floor saturates (100–20000) |
-| `gamma` | the shape of the ramp: `< 1` builds fast then flattens, `> 1` stays loose then walls up (0.25–7.9375) |
+| `fullScaleCounts` | the movement budget: encoder counts of pull, from the zero, before the force floor saturates and the belt stops giving. Small = a short, tight leash; large = the wearer travels further before it walls up. Range 100–20000; an untuned device sits at 6667. |
+| `gamma` | where in that travel the resistance builds. `1.0` is a straight linear ramp; `< 1` builds fast then flattens, so the belt feels firm from the first millimetre; `> 1` stays loose then walls up hard near the end of the budget. Range 0.25–7.9375; untuned default `1.0`. |
+
+Both ends clamp to those ranges — a value outside them is unsafe on a harness
+worn against a torso, so `belt-tune` reports the rejection to the operator and
+the firmware refuses it independently, including on the value it reloads from
+flash with no host attached.
 
 It links **only** `SerialPort` and the tuning-frame encoder — no shm, no shmlog,
 no bridge code — so it can grow into a GUI later without the bridge's streaming
