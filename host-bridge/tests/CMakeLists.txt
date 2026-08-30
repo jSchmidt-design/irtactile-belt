@@ -11,9 +11,11 @@ add_executable(irTactileSerialBridge_tests
     BridgeConfig_test.cpp
     WireParams_test.cpp
     Throttle_test.cpp
+    TuningFrame_test.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/SerialProtocol.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/BridgeConfig.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/../src/WireParams.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/../src/TuningFrame.cpp
 )
 
 target_include_directories(irTactileSerialBridge_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../src)

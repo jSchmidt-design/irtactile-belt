@@ -395,6 +395,56 @@ int main() {
         CHECK(!ring.pop(s));
     }
 
+    // 8: the tuning floor hold. belt-tune cannot feed the stream, so the
+    //    playout starves the whole time it is connected; setFloorHold keeps the
+    //    floor's own gain up.
+    {
+        SampleRing ring;               // never fed - a permanent underrun
+        Playout p;
+        p.configure(6000000, 16);
+
+        auto tickN = [&](uint64_t n) {
+            for (uint64_t t = 0; t < n; t++) p.tick(ring);
+        };
+
+        // With no hold, both gains fall together after the 250 ms silence
+        // window, and floorGainQ16() tracks gainQ16() every single tick.
+        for (int i = 0; i < 3 * DAC_TICK_HZ; i++) {
+            p.tick(ring);
+            CHECK(p.floorGainQ16() == p.gainQ16());
+        }
+        CHECK(p.gainQ16() == 0 && p.floorGainQ16() == 0);
+
+        // Assert the hold: the stream gain stays at zero (its samples are
+        // stale), but the floor ramps back up and holds at GAIN_ONE through an
+        // unbroken underrun.
+        p.setFloorHold(true);
+        tickN(DAC_TICK_HZ);
+        CHECK(p.floorGainQ16() == GAIN_ONE);
+        CHECK(p.gainQ16() == 0);
+        tickN(DAC_TICK_HZ);
+        CHECK(p.floorGainQ16() == GAIN_ONE);   // still held a second later
+
+        // The fault mute still wins over the hold - a dead I2C bus must release
+        // the floor too.
+        p.setMuted(true);
+        tickN(DAC_TICK_HZ / 20 + 4);            // 50 ms ramp + slack
+        CHECK(p.floorGainQ16() == 0);
+        p.setMuted(false);
+        tickN(DAC_TICK_HZ / 20 + 4);
+        CHECK(p.floorGainQ16() == GAIN_ONE);    // recovers while still held
+
+        // Release the hold: the floor ramps down over ~300 ticks (the 50 ms
+        // GAIN_STEP slope), it does not step off a cliff.
+        p.setFloorHold(false);
+        p.tick(ring);
+        const uint32_t justAfter = p.floorGainQ16();
+        CHECK(justAfter > 0 && justAfter < GAIN_ONE);
+        tickN(DAC_TICK_HZ / 20 + 4);
+        CHECK(p.floorGainQ16() == 0);
+        printf("8: floor hold keeps the belt live through underrun; mute still wins; release ramps\n");
+    }
+
     printf(g_fail ? "\n%d CHECK(s) FAILED\n" : "\nall checks passed\n", g_fail);
     return g_fail ? 1 : 0;
 }

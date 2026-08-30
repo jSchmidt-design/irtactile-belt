@@ -8,9 +8,11 @@
 
 static std::vector<std::pair<uint16_t, uint16_t>> g_data;
 static std::vector<std::pair<uint32_t, uint16_t>> g_cfg;
+static std::vector<std::pair<uint16_t, uint8_t>> g_tune;
 
 static void onData(uint16_t d[2]) { g_data.push_back({ d[0], d[1] }); }
 static void onCfg(uint32_t rate, uint16_t blk) { g_cfg.push_back({ rate, blk }); }
+static void onTune(uint16_t fs, uint8_t gq) { g_tune.push_back({ fs, gq }); }
 
 static int g_fail = 0;
 #define CHECK(cond) do { if (!(cond)) { printf("FAIL %s:%d  %s\n", __FILE__, __LINE__, #cond); g_fail++; } } while (0)
@@ -22,6 +24,19 @@ static void header(std::vector<uint8_t>& s, uint8_t rateCode, uint16_t blk, bool
     uint8_t chk = (type ^ rateCode ^ lo ^ hi) & 0x7F;
     if (corruptChk) chk ^= 0x01;
     s.push_back(type); s.push_back(rateCode); s.push_back(lo); s.push_back(hi); s.push_back(chk);
+}
+
+// Tuning header, matching host-bridge/src/TuningFrame.cpp: fullScaleCounts is
+// halved on the wire, rounded (n + 1) / 2.
+static void tuningHeader(std::vector<uint8_t>& s, uint16_t fullScaleCounts,
+                         uint8_t gammaQ, bool corruptChk = false) {
+    for (int i = 0; i < 4; i++) s.push_back(0xFF);
+    const uint8_t type = 0x02;
+    const uint16_t half = (uint16_t)((fullScaleCounts + 1) / 2);
+    const uint8_t lo = half & 0x7F, hi = (half >> 7) & 0x7F;
+    uint8_t chk = (type ^ lo ^ hi ^ gammaQ) & 0x7F;
+    if (corruptChk) chk ^= 0x01;
+    s.push_back(type); s.push_back(lo); s.push_back(hi); s.push_back(gammaQ); s.push_back(chk);
 }
 
 static void message(std::vector<uint8_t>& s, uint16_t ch0, uint16_t ch1) {
@@ -131,19 +146,20 @@ int main() {
         CHECK(g_data.size() == 10);
     }
 
-    // 7: bad frame type / out of range rate code are rejected.
+    // 7: an unknown frame type and an out-of-range rate code are both rejected,
+    //    with valid checksums, so it is the type/range check that catches them.
     for (int variant = 0; variant < 2; variant++) {
-        g_cfg.clear();
-        SerialDecoder d(onData, onCfg);
+        g_cfg.clear(); g_tune.clear();
+        SerialDecoder d(onData, onCfg, onTune);
         std::vector<uint8_t> s;
         for (int i = 0; i < 4; i++) s.push_back(0xFF);
-        uint8_t type = variant == 0 ? 0x02 : 0x01;
+        uint8_t type = variant == 0 ? 0x03 : 0x01;   // 0x03: not a defined type
         uint8_t rc = variant == 0 ? 3 : 11;
         uint8_t lo = 16, hi = 0;
         s.push_back(type); s.push_back(rc); s.push_back(lo); s.push_back(hi);
         s.push_back((type ^ rc ^ lo ^ hi) & 0x7F);
         feed(d, s, 9);
-        CHECK(g_cfg.empty() && !d.synced());
+        CHECK(g_cfg.empty() && g_tune.empty() && !d.synced());
     }
 
     // 8: a new header while synced reconfigures, and message phase restarts
@@ -321,6 +337,70 @@ int main() {
         for (size_t i = 0; i < g_data.size() && i < want.size(); i++) {
             if (g_data[i] != want[i]) { printf("FAIL sample %zu\n", i); g_fail++; break; }
         }
+    }
+
+    // 14: a valid tuning header dispatches the tuning callback with the fields
+    //     reassembled and the 2-count wire scaling undone. Even counts round
+    //     trip exactly; an odd count comes back one high (host rounds up).
+    for (size_t chunk = 1; chunk <= 16; chunk++) {
+        struct { uint16_t in; uint16_t out; uint8_t gq; } cases[] = {
+            { 4000, 4000, 10 },      // even, exact
+            { 6667, 6668, 16 },      // odd default: lands one count high
+            { 20000, 20000, 127 },   // the ceiling round-trips intact
+            { 100, 100, 4 },         // the floor
+        };
+        for (auto &c : cases) {
+            g_data.clear(); g_cfg.clear(); g_tune.clear();
+            SerialDecoder d(onData, onCfg, onTune);
+            std::vector<uint8_t> s;
+            tuningHeader(s, c.in, c.gq);
+            feed(d, s, chunk);
+            CHECK(g_tune.size() == 1);
+            CHECK(g_tune[0].first == c.out);
+            CHECK(g_tune[0].second == c.gq);
+            CHECK(g_cfg.empty());
+            CHECK(d.headersAccepted() == 1);
+        }
+    }
+
+    // 15: a tuning header with a bad checksum is discarded - no callback, and
+    //     the decoder stays hunting for a marker.
+    {
+        g_tune.clear();
+        SerialDecoder d(onData, onCfg, onTune);
+        std::vector<uint8_t> s;
+        tuningHeader(s, 4000, 16, /*corruptChk=*/true);
+        feed(d, s, 3);
+        CHECK(g_tune.empty());
+        CHECK(!d.synced());
+        CHECK(d.headersRejected() == 1);
+
+        // ...and the next good tuning header recovers.
+        std::vector<uint8_t> s2;
+        tuningHeader(s2, 8000, 32);
+        feed(d, s2, 3);
+        CHECK(g_tune.size() == 1 && g_tune[0].first == 8000 && g_tune[0].second == 32);
+    }
+
+    // 16: rate and tuning headers interleave on the one stream - each goes to
+    //     its own callback, and message phase still runs after a rate header.
+    {
+        g_data.clear(); g_cfg.clear(); g_tune.clear();
+        SerialDecoder d(onData, onCfg, onTune);
+        std::vector<uint8_t> s;
+        header(s, 3, 16);
+        for (uint16_t i = 0; i < 5; i++) message(s, i, i);
+        tuningHeader(s, 5000, 24);
+        header(s, 7, 1);
+        for (uint16_t i = 0; i < 5; i++) message(s, 100 + i, 100 + i);
+        tuningHeader(s, 12000, 8);
+        feed(d, s, 4);
+        CHECK(g_cfg.size() == 2);
+        CHECK(g_cfg[0].first == 6000000u && g_cfg[1].first == 375000u);
+        CHECK(g_data.size() == 10);
+        CHECK(g_tune.size() == 2);
+        CHECK(g_tune[0].first == 5000 && g_tune[0].second == 24);
+        CHECK(g_tune[1].first == 12000 && g_tune[1].second == 8);
     }
 
     printf(g_fail ? "\n%d CHECK(s) FAILED\n" : "\nall checks passed\n", g_fail);

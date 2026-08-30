@@ -9,6 +9,7 @@ rem   test.bat            build and run all suites
 rem   test.bat decoder    only the decoder suite
 rem   test.bat playout    only the playout suite
 rem   test.bat counter    only the counter suite
+rem   test.bat forcecurve only the force-curve suite
 rem
 rem Set NOPAUSE=1 to suppress the hold-open when calling this from a script.
 
@@ -18,7 +19,7 @@ set "ROOT=%~dp0"
 if "%ROOT:~-1%"=="\" set "ROOT=%ROOT:~0,-1%"
 set "OUT=%ROOT%\tests\build"
 
-set SUITES=decoder playout counter
+set SUITES=decoder playout counter forcecurve
 if not "%~1"=="" set SUITES=%~1
 
 rem Set up the MSVC environment unless we are already inside a dev prompt.

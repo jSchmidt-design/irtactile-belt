@@ -31,6 +31,20 @@
 #define HEADER_LEN 5
 #define HEADER_TYPE 0x01
 
+// Second header type: the encoder force-curve tuning parameters, emitted by the
+// belt-tune tool and never by the bridge. Same fixed 5-byte payload, same
+// checksum shape (protocol.md).
+//
+//   FF FF FF FF   sync
+//   0x02          frame type: tuning
+//   fsLo           (fullScaleCounts / 2)        & 0x7F
+//   fsHi          ((fullScaleCounts / 2) >> 7)  & 0x7F   -- 14 bits, 2-count units
+//   gammaQ        gamma * 16, Q3.4
+//   chk           (type ^ fsLo ^ fsHi ^ gammaQ) & 0x7F
+//
+// Payload bytes only have to be <= 0x7F here; forceCurveClamp() owns the ranges.
+#define HEADER_TYPE_TUNING 0x02
+
 // The ladder runs 0..10 (48 kHz down to 46.875 Hz); this firmware accepts only
 // 3..10, i.e. 6 kHz and below.
 //
@@ -54,18 +68,20 @@ enum ReceiverState {
 
 typedef void (*DataCallback)(uint16_t[2]);
 typedef void (*ConfigCallback)(uint32_t rateMilliHz, uint16_t blockSamples);
+typedef void (*TuningCallback)(uint16_t fullScaleCounts, uint8_t gammaQ);
 
 class SerialDecoder {
 public:
 
-  SerialDecoder(DataCallback cb, ConfigCallback ccb = nullptr)
-    : m_callback(cb), m_configCallback(ccb) {
+  SerialDecoder(DataCallback cb, ConfigCallback ccb = nullptr, TuningCallback tcb = nullptr)
+    : m_callback(cb), m_configCallback(ccb), m_tuningCallback(tcb) {
     idx = 0;
     markerIdx = 0;
     hdrIdx = 0;
   }
 
   void setConfigCallback(ConfigCallback cb) { m_configCallback = cb; }
+  void setTuningCallback(TuningCallback cb) { m_tuningCallback = cb; }
 
   void process(const uint8_t *rxBuf, int len) {
     uint16_t data[2];
@@ -154,15 +170,35 @@ public:
 private:
 
   bool validateHeader() {
-    if (hdrBuffer[0] != HEADER_TYPE) return false;
-    if (hdrBuffer[1] < MIN_RATE_CODE || hdrBuffer[1] > MAX_RATE_CODE) return false;
-    if (hdrBuffer[2] > 0x7F || hdrBuffer[3] > 0x7F) return false;
+    // Checksum first - its shape is the same for every header type.
     uint8_t chk = (hdrBuffer[0] ^ hdrBuffer[1] ^ hdrBuffer[2] ^ hdrBuffer[3]) & 0x7F;
     if (chk != hdrBuffer[4]) return false;
-    return true;
+
+    if (hdrBuffer[0] == HEADER_TYPE) {
+      if (hdrBuffer[1] < MIN_RATE_CODE || hdrBuffer[1] > MAX_RATE_CODE) return false;
+      if (hdrBuffer[2] > 0x7F || hdrBuffer[3] > 0x7F) return false;
+      return true;
+    }
+    if (hdrBuffer[0] == HEADER_TYPE_TUNING) {
+      // Just the payload-byte invariant; forceCurveClamp() owns the ranges.
+      if (hdrBuffer[1] > 0x7F || hdrBuffer[2] > 0x7F || hdrBuffer[3] > 0x7F) return false;
+      return true;
+    }
+    return false;
   }
 
   void applyHeader() {
+    if (hdrBuffer[0] == HEADER_TYPE_TUNING) {
+      // 14-bit field, reassembled the same way blockSamples is below, then
+      // << 1 to undo the 2-count wire scaling. Max input is 0x3FFF, so
+      // (0x3FFF << 1) == 32766 - no uint16_t overflow for any 14-bit value.
+      uint16_t fullScaleCounts =
+        ((uint16_t)hdrBuffer[1] | ((uint16_t)hdrBuffer[2] << 7)) << 1;
+      uint8_t gammaQ = hdrBuffer[3];
+      if (m_tuningCallback) m_tuningCallback(fullScaleCounts, gammaQ);
+      return;
+    }
+
     // Exact for all 11 ladder rates: no table, no float.
     uint32_t rateMilliHz = RATE_BASE_MILLIHZ >> hdrBuffer[1];
     uint16_t blockSamples = (uint16_t)hdrBuffer[2] | ((uint16_t)hdrBuffer[3] << 7);
@@ -186,6 +222,7 @@ private:
 
   DataCallback m_callback;
   ConfigCallback m_configCallback;
+  TuningCallback m_tuningCallback;
 };
 
 #endif

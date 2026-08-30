@@ -200,6 +200,66 @@ always go to the console, because they happen before the logger exists.
 | Silence, or a burst-then-hold rhythm | Firmware predates the in-band header. Use `--legacy-marker`, or update the firmware. |
 | ESP32 reboots when the bridge starts | Build predates the DTR/RTS fix in `SerialPort::open`. |
 
+## belt-tune
+
+`belt-tune` is a second, separate executable in this tree. It sets the
+controller's **runtime-tunable encoder force curve** over the serial link,
+without a reflash.
+
+The force curve is what decides **how much the wearer can move against the belt
+while it is active**. When the belt is driven, pulling against it winds the
+encoder up from its zero; the firmware turns that count into a resisting force
+floor that climbs along the curve until it saturates. Past that point the belt
+gives no further and the pull has effectively stopped. `belt-tune` reshapes that
+climb — the total travel it allows and where in the travel the resistance builds:
+
+| Parameter | Meaning |
+|---|---|
+| `fullScaleCounts` | the movement budget: encoder counts of pull, from the zero, before the force floor saturates and the belt stops giving. Small = a short, tight leash; large = the wearer travels further before it walls up. Range 100–20000; an untuned device sits at 6667. |
+| `gamma` | where in that travel the resistance builds. `1.0` is a straight linear ramp; `< 1` builds fast then flattens, so the belt feels firm from the first millimetre; `> 1` stays loose then walls up hard near the end of the budget. Range 0.25–7.9375; untuned default `1.0`. |
+
+Both ends clamp to those ranges — a value outside them is unsafe on a harness
+worn against a torso, so `belt-tune` reports the rejection to the operator and
+the firmware refuses it independently, including on the value it reloads from
+flash with no host attached.
+
+It links **only** `SerialPort` and the tuning-frame encoder — no shm, no shmlog,
+no bridge code — so it can grow into a GUI later without the bridge's streaming
+concerns. It does **not** configure without the bridge's dependencies, though:
+the `FetchContent` calls in `CMakeLists.txt` run unconditionally at configure
+time. The minimal footprint is at the source and link level.
+
+```sh
+cmake -S . -B build
+cmake --build build --config Release --target belt-tune
+./build/bin/Release/belt-tune.exe --port COM6
+```
+
+Then type one `"<fullScaleCounts> <gamma>"` line per change:
+
+```
+4000 0.6
+2000 1.0
+6667 2.5
+```
+
+| Option | Default | Notes |
+|---|---|---|
+| `--port <COMx>` | *required* | Opened `\\.\COMx`, `GENERIC_WRITE` only. Exclusive: cannot run while `irTactileSerialBridge` holds the same port. |
+| `--baud <n>` | `1200000` | Match the firmware. |
+| `--rate-hz <n>` | `20` | Header resend rate. **Load-bearing:** each header holds the belt live for ~250 ms with no sample stream, so a lower rate makes the belt stutter and slows the release on exit. Refused below 8. |
+| `--help`, `-h`, `/?` | | Usage text. |
+
+- **Sends from the moment the port opens**, using the defaults until you type
+  something — the resend cadence is what holds the belt live.
+- **Open-loop.** The data link is host→device only ([`hardware/wiring.md`](../hardware/wiring.md)),
+  so there is no read-back: the effect is felt on the belt, not reported.
+- **Exit** (Ctrl+C or EOF) closes the port; the firmware's hold lapses and the
+  belt releases in ~300 ms. That is the intended and only exit behaviour.
+
+Wire format and the firmware-side hold/clamp semantics:
+[`controller-firmware/protocol.md`](../controller-firmware/protocol.md#tuning-header).
+
 ## Tests
 
 ```sh
@@ -217,20 +277,27 @@ ctest --test-dir build -C Release --output-on-failure
 [`SerialProtocol_test.cpp`](tests/SerialProtocol_test.cpp) covers the wire
 format byte-for-byte, [`WireParams_test.cpp`](tests/WireParams_test.cpp) the
 rate ladder and the derived wire arithmetic,
-[`BridgeConfig_test.cpp`](tests/BridgeConfig_test.cpp) the command line and
-[`Throttle_test.cpp`](tests/Throttle_test.cpp) the log rate limiting. All four
-are pure: no board, no port, no live shm section. `SerialPort` and `main.cpp`
-are not unit-tested; both are thin layers over Win32 handles and the shm
-client.
+[`BridgeConfig_test.cpp`](tests/BridgeConfig_test.cpp) the command line,
+[`Throttle_test.cpp`](tests/Throttle_test.cpp) the log rate limiting and
+[`TuningFrame_test.cpp`](tests/TuningFrame_test.cpp) the tuning-frame byte
+layout, checksum, clamping and wire round trip. All are pure: no board, no port,
+no live shm section. `SerialPort`, `main.cpp` and `BeltTuneMain.cpp` are not
+unit-tested; all three are thin layers over Win32 handles and the shm client.
 
 ## Layout
 
-| Path | |
-|---|---|
-| `src/main.cpp` | attach, drain loop, failure handling |
-| `src/BridgeConfig.*` | command-line parsing |
-| `src/WireParams.*` | rate ladder, marker cadence, backlog threshold, sample scaling |
-| `src/SerialProtocol.*` | frame and header encoding |
-| `src/SerialPort.*` | Win32 COM port |
-| `src/Throttle.h` | log rate limiting |
-| `tests/` | doctest suites |
+This tree builds **two** executables: `irTactileSerialBridge` (the shm→serial
+bridge) and `belt-tune` (the interactive force-curve tool). They share
+`SerialPort`; `belt-tune` additionally uses `TuningFrame`.
+
+| Path | | Used by |
+|---|---|---|
+| `src/main.cpp` | attach, drain loop, failure handling | bridge |
+| `src/BridgeConfig.*` | command-line parsing | bridge |
+| `src/WireParams.*` | rate ladder, marker cadence, backlog threshold, sample scaling | bridge |
+| `src/SerialProtocol.*` | data frame and rate-header encoding | bridge |
+| `src/Throttle.h` | log rate limiting | bridge |
+| `src/BeltTuneMain.cpp` | interactive tool: argv, sender thread, input loop | belt-tune |
+| `src/TuningFrame.*` | tuning-header encoding, gamma→wire, clamping | belt-tune |
+| `src/SerialPort.*` | Win32 COM port | both |
+| `tests/` | doctest suites | |

@@ -7,9 +7,10 @@
 // the sample stream the DAC tick already takes.
 //
 // PCNT *resets to 0* at counter_h_lim / counter_l_lim: it neither saturates nor
-// rolls over modulo 2^16 (Counter.h). mapTo15bit() saturates at 6667 counts, so
-// past that the torque command is flat - the belt is a constant-force pull with
-// no mechanical stop, and 32767 counts is reachable. Untracked, the floor would
+// rolls over modulo 2^16 (Counter.h). forceFloor() saturates at the curve's
+// full-scale count (6667 by default, at most 20000 - ForceCurve.h), so past
+// that the torque command is flat - the belt is a constant-force pull with no
+// mechanical stop, and 32767 counts is reachable. Untracked, the floor would
 // drop from full scale to zero there.
 //
 // The delta test replaces the PCNT h_lim/l_lim event ISR because the caller

@@ -317,22 +317,22 @@ Counter behaviour: 1 µs glitch filter (80 APB cycles, passes up to ~500 kHz);
 signed 16-bit counters that **wrap** rather than saturate, folded back in
 software by `WrapTracker.h`; reset on the button release that arms the unit.
 
-> **The wrap is handled, not avoided.** Past **6667 counts** the torque command is
-> flat, so resistance stops rising and the belt becomes a constant-force pull
-> with no mechanical stop; 32767 counts is reachable in a lurch or a fall. Left
-> untracked, the failure is force *vanishing* at maximum pull, or *appearing* on
-> a belt nobody is pulling.
+> **The belt has no mechanical stop.** Past the count where the torque command
+> saturates, resistance stops rising and the pull becomes constant-force, so
+> **32767 counts is reachable** in a lurch or a fall — which is what the wrap
+> tracking above is for. Where that saturation point sits is a firmware setting,
+> not a wiring fact: see
+> [`protocol.md`](../controller-firmware/protocol.md#tuning-header).
 
 **Counts are never converted to distance, and do not need to be.** The drives run
 in torque mode, so the count is a relative displacement from the zero set at
 arming and feeds a **floor under the torque command**: a virtual spring, not a
-position loop. The counts-to-DAC gain is a tuned feel parameter, so there is no
-counts-per-revolution figure to record. The one number that matters is
-**6667 counts = full scale (10.000 V)**; beyond that, pulling adds no force.
+position loop. The counts-to-force mapping is a runtime-tunable feel parameter,
+so there is no counts-per-revolution figure to record.
 
 **TBD: the travel actually available**, whether the mechanism can physically
-reach 32767 counts (~5× the extension that already reaches full force). Firmware
-README bench step 8 answers it by watching `Wrap1`/`Wrap2` on a full pull.
+reach 32767 counts. Firmware README bench step 8 answers it by watching
+`Wrap1`/`Wrap2` on a full pull.
 
 ---
 
