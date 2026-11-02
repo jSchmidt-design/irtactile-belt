@@ -1032,7 +1032,7 @@ footer{
   <figure>
     <div class="fig-scroll">
     <svg class="dg dg-wide" viewBox="0 0 860 250" role="img"
-      aria-label="Encoder receiver path: the drive's CN2 pins 20 and 19 carry the PA plus and minus differential pair to an RS-485 to TTL module's A plus and B minus terminals, terminated by 120 ohms. The module is powered from the ESP32's 3.3 V rail, its TXD is left disconnected, and its RXD output goes to ESP32 GPIO 4. The drive's DGND on pin 16 is the common for the module and the ESP32.">
+      aria-label="Encoder receiver path: the drive's CN2 pins 20 and 19 carry the PA plus and minus differential pair to an RS-485 to TTL module's A plus and B minus terminals, terminated by 120 ohms. The module is powered from the ESP32's 3.3 V rail, its TXD is left disconnected, and its RXD output goes to ESP32 GPIO 4. The drive's GND on pin 1 goes to the module's line-side earth terminal; the module's logic GND goes to the ESP32's GND.">
 
       <rect class="box" x="20" y="60" width="180" height="120" rx="2"/>
       <text class="t-title" x="32" y="84">AASD-15A CN2</text>
@@ -1041,7 +1041,7 @@ footer{
         <text class="t-pin" x="32" y="116">20  PA+</text>
         <text class="t-pin" x="32" y="136">19  PA&minus;</text>
       </g>
-      <text class="t-pin" x="32" y="166">16  DGND</text>
+      <text class="t-pin" x="32" y="166">1   GND</text>
 
       <g class="sig s-enc">
         <path class="wire w-enc thin" d="M200,112 L316,112"/>
@@ -1071,11 +1071,13 @@ footer{
       <g class="sig s-enc"><text class="t-pin" x="632" y="128">GPIO 4  &rarr;  PCNT 0, A</text></g>
       <text class="t-pin" x="632" y="148">rising edge = 1 count</text>
 
-      <path class="wire w-ser thin" d="M200,160 L215,160 L215,216 L720,216 L720,174" marker-end="url(#ah-ser)"/>
-      <circle cx="430" cy="216" r="3" fill="var(--ser)"/>
-      <path class="wire w-ser thin" d="M430,216 L430,200"/>
-      <text class="t-sub" x="470" y="234">common ground &mdash; drive DGND, module GND, ESP32 GND</text>
-      <text class="t-note" x="332" y="188">earth terminal &rarr; controller GND</text>
+      <!-- line side: drive pin 1 to the module's earth terminal -->
+      <path class="wire w-ser thin" d="M200,162 L316,162" marker-end="url(#ah-ser)"/>
+      <text class="t-pin" x="332" y="166">earth</text>
+      <!-- logic side: module GND to the ESP32's 3.3 V-side GND -->
+      <text class="t-sub" x="500" y="192" text-anchor="middle">GND</text>
+      <path class="wire w-ser thin" d="M500,200 L500,216 L720,216 L720,174" marker-end="url(#ah-ser)"/>
+      <text class="t-sub" x="610" y="234" text-anchor="middle">module GND &rarr; ESP32 GND (3.3 V side)</text>
     </svg>
     </div>
     <figcaption>
@@ -1141,7 +1143,7 @@ footer{
       <tr><td>Glitch filter</td><td class="m">80 APB cycles = 1 &micro;s</td><td class="dim">rejects switching noise; passes up to ~500 kHz</td></tr>
       <tr><td>Counter width</td><td class="m">signed 16-bit</td><td class="dim"><b>wraps to 0</b> at &plusmn;32767/&minus;32768 &mdash; it does not saturate</td></tr>
       <tr><td>Reset</td><td class="m">on button release</td><td class="dim">this is the zero the preload is measured from</td></tr>
-      <tr><td>Z / index</td><td class="m dim">PZ&plusmn; (15/14), OZ (22)</td><td class="dim">available, unused &mdash; one pulse per revolution, no absolute reference</td></tr>
+      <tr><td>Z / index</td><td class="m dim">PZ&plusmn; (15/16), OZ (22)</td><td class="dim">available, unused &mdash; one pulse per revolution, no absolute reference</td></tr>
     </tbody>
   </table>
   </div>
@@ -1370,25 +1372,27 @@ footer{
   <figure>
     <div class="fig-scroll">
     <svg class="dg" viewBox="0 0 530 212" role="img" style="max-width:620px;margin:0 auto"
-      aria-label="CN2 25-pin connector map. Used pins: 6 SigIn1 SRV-ON and 9 input common on the enable path; 13 AGND and 25 Vref on the analog path; 16 DGND, 17 and 18 PB minus and plus, 19 and 20 PA minus and plus on the encoder path. All other pins are unused.">
+      aria-label="CN2 25-pin connector map. Used pins: 6 SigIn1 SRV-ON and 9 input common on the enable path; 13 AGND and 25 Vref on the analog path; 1 GND, 17 and 18 PB minus and plus, 19 and 20 PA minus and plus on the encoder path. All other pins are unused.">
       <path d="M46,76 L484,76 L490,86 L490,132 L484,142 L46,142 L40,132 L40,86 Z"
         fill="var(--plate-2)" stroke="var(--rule)" stroke-width="1.5"/>
 
       <!-- unused pins, top row -->
       <g fill="none" stroke="var(--rule)" stroke-width="1.25">
-        <circle cx="60" cy="97" r="7"/><circle cx="94" cy="97" r="7"/><circle cx="128" cy="97" r="7"/>
+        <circle cx="94" cy="97" r="7"/><circle cx="128" cy="97" r="7"/>
         <circle cx="162" cy="97" r="7"/><circle cx="196" cy="97" r="7"/><circle cx="264" cy="97" r="7"/>
         <circle cx="298" cy="97" r="7"/><circle cx="366" cy="97" r="7"/><circle cx="400" cy="97" r="7"/>
         <circle cx="434" cy="97" r="7"/>
-        <circle cx="77" cy="121" r="7"/><circle cx="111" cy="121" r="7"/><circle cx="315" cy="121" r="7"/>
+        <circle cx="77" cy="121" r="7"/><circle cx="111" cy="121" r="7"/><circle cx="145" cy="121" r="7"/>
+        <circle cx="315" cy="121" r="7"/>
         <circle cx="349" cy="121" r="7"/><circle cx="383" cy="121" r="7"/><circle cx="417" cy="121" r="7"/>
       </g>
       <g class="pinnum" text-anchor="middle">
-        <text x="60" y="100">1</text><text x="94" y="100">2</text><text x="128" y="100">3</text>
+        <text x="94" y="100">2</text><text x="128" y="100">3</text>
         <text x="162" y="100">4</text><text x="196" y="100">5</text><text x="264" y="100">7</text>
         <text x="298" y="100">8</text><text x="366" y="100">10</text><text x="400" y="100">11</text>
         <text x="434" y="100">12</text>
-        <text x="77" y="124">14</text><text x="111" y="124">15</text><text x="315" y="124">21</text>
+        <text x="77" y="124">14</text><text x="111" y="124">15</text><text x="145" y="124">16</text>
+        <text x="315" y="124">21</text>
         <text x="349" y="124">22</text><text x="383" y="124">23</text><text x="417" y="124">24</text>
       </g>
 
@@ -1408,19 +1412,19 @@ footer{
         <text class="t-edge" x="451" y="180" text-anchor="middle" fill="var(--an)">25 &middot; Vref</text>
       </g>
       <g class="sig s-enc">
-        <circle cx="145" cy="121" r="7" fill="var(--enc)"/>
+        <circle cx="60" cy="97" r="7" fill="var(--enc)"/>
         <circle cx="179" cy="121" r="7" fill="var(--enc)"/><circle cx="213" cy="121" r="7" fill="var(--enc)"/>
         <circle cx="247" cy="121" r="7" fill="var(--enc)"/><circle cx="281" cy="121" r="7" fill="var(--enc)"/>
-        <path d="M145,128 L145,190" stroke="var(--enc)" stroke-width="1"/>
+        <path d="M60,90 L60,56" stroke="var(--enc)" stroke-width="1"/>
         <path d="M179,128 L179,150 L213,150 L213,128 M196,150 L196,166" stroke="var(--enc)" stroke-width="1" fill="none"/>
         <path d="M247,128 L247,158 L281,158 L281,128 M264,158 L264,184" stroke="var(--enc)" stroke-width="1" fill="none"/>
-        <text class="t-edge" x="145" y="198" text-anchor="middle" fill="var(--enc)">16 &middot; DGND</text>
+        <text class="t-edge" x="60" y="50" text-anchor="middle" fill="var(--enc)">1 &middot; GND</text>
         <text class="t-edge" x="196" y="180" text-anchor="middle" fill="var(--enc)">18/17 &middot; PB&plusmn;</text>
         <text class="t-edge" x="264" y="198" text-anchor="middle" fill="var(--enc)">20/19 &middot; PA&plusmn;</text>
       </g>
       <g class="pinnum-on" text-anchor="middle">
         <text x="230" y="100">6</text><text x="332" y="100">9</text><text x="468" y="100">13</text>
-        <text x="145" y="124">16</text><text x="179" y="124">17</text><text x="213" y="124">18</text>
+        <text x="60" y="100">1</text><text x="179" y="124">17</text><text x="213" y="124">18</text>
         <text x="247" y="124">19</text><text x="281" y="124">20</text><text x="451" y="124">25</text>
       </g>
     </svg>
@@ -1443,7 +1447,7 @@ footer{
       <tr><td class="n"><span class="pd pd-an"></span>13</td><td class="m">AGND</td><td>analog ground</td><td class="used">&larr; DAC GND</td></tr>
       <tr><td class="n"><span class="pd pd-enc"></span>20 / 19</td><td class="m">PA+ / PA&minus;</td><td>A phase pulse output</td><td class="used">&rarr; PCNT A</td></tr>
       <tr><td class="n"><span class="pd pd-enc"></span>18 / 17</td><td class="m">PB+ / PB&minus;</td><td>B phase pulse output</td><td class="used">&rarr; PCNT B</td></tr>
-      <tr><td class="n"><span class="pd pd-enc"></span>16</td><td class="m">GND (DGND)</td><td>pulse output common</td><td class="used">&rarr; ESP32 GND</td></tr>
+      <tr><td class="n"><span class="pd pd-enc"></span>1</td><td class="m">GND (DGND)</td><td>pulse output common</td><td class="used">&rarr; each RS-485 receiver&rsquo;s line-side earth</td></tr>
       <tr><td class="n"><span class="pd pd-no"></span>7</td><td class="m dim">SigIn2</td><td class="dim">Alarm Reset</td><td class="dim">would clear a fault without a power cycle</td></tr>
       <tr><td class="n"><span class="pd pd-no"></span>21</td><td class="m dim">SigIn3</td><td class="dim">Position deviation clear</td><td class="dim">&mdash;</td></tr>
       <tr><td class="n"><span class="pd pd-no"></span>8</td><td class="m dim">SigIn4</td><td class="dim">ZEROSPD</td><td class="dim">&mdash;</td></tr>
@@ -1452,8 +1456,11 @@ footer{
       <tr><td class="n"><span class="pd pd-no"></span>23</td><td class="m dim">SigOut2</td><td class="dim"><b>Alarm detection</b> &mdash; open collector</td><td class="dim">unwired &mdash; faults are invisible</td></tr>
       <tr><td class="n"><span class="pd pd-no"></span>12</td><td class="m dim">SigOut3</td><td class="dim">Position completed</td><td class="dim">&mdash;</td></tr>
       <tr><td class="n"><span class="pd pd-no"></span>24</td><td class="m dim">SigOut4</td><td class="dim">Zero speed</td><td class="dim">&mdash;</td></tr>
-      <tr><td class="n"><span class="pd pd-no"></span>15 / 14</td><td class="m dim">PZ+ / PZ&minus;</td><td class="dim">Z phase (index) pulse output</td><td class="dim">available for homing</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>15 / 16</td><td class="m dim">PZ+ / PZ&minus;</td><td class="dim">Z phase (index) pulse output</td><td class="dim">available for homing</td></tr>
       <tr><td class="n"><span class="pd pd-no"></span>22</td><td class="m dim">OZ</td><td class="dim">Z open-collector output</td><td class="dim">&mdash;</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>2</td><td class="m dim">PV</td><td class="dim">open-collector power for the pulse command inputs</td><td class="dim">position mode only</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>3 / 14</td><td class="m dim">PP+ / PP&minus;</td><td class="dim">pulse command input</td><td class="dim">position mode only</td></tr>
+      <tr><td class="n"><span class="pd pd-no"></span>4 / 5</td><td class="m dim">PD+ / PD&minus;</td><td class="dim">direction command input</td><td class="dim">position mode only</td></tr>
     </tbody>
   </table>
   </div>
@@ -1488,7 +1495,7 @@ footer{
   <figure>
     <div class="fig-scroll">
     <svg class="dg dg-wide" viewBox="0 0 760 220" role="img"
-      aria-label="Ground domains: the control domain referenced to USB 0 V contains the ESP32, DAC ground, RS-485 module grounds and relay logic. The SRV-ON enable crosses the AASD-15A boundary through an optocoupler and is isolated. AGND on pin 13 and DGND on pin 16 cross the same boundary as shared conductors.">
+      aria-label="Ground domains: the control domain referenced to USB 0 V contains the ESP32, DAC ground, RS-485 module grounds and relay logic. The SRV-ON enable crosses the AASD-15A boundary through an optocoupler and is isolated. AGND on pin 13 and GND on pin 1 cross the same boundary as shared conductors.">
       <rect class="box-o" x="20" y="40" width="320" height="160" rx="2"/>
       <text class="t-title" x="32" y="62">CONTROL DOMAIN</text>
       <text class="t-sub" x="32" y="78">USB 0 V reference &rarr; host PC</text>
@@ -1524,7 +1531,7 @@ footer{
       </g>
       <text class="t-sub" x="336" y="66" text-anchor="end">SRV-ON</text>
       <text class="t-sub" x="336" y="146" text-anchor="end">AGND pin 13</text>
-      <text class="t-sub" x="336" y="190" text-anchor="end">DGND pin 16</text>
+      <text class="t-sub" x="336" y="190" text-anchor="end">GND pin 1</text>
     </svg>
     </div>
     <figcaption>

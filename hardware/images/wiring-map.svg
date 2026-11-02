@@ -74,7 +74,6 @@
   <text class="t pin" x="428" y="526" text-anchor="end">GPIO 5</text>
   <text class="t pin" x="428" y="562" text-anchor="end">GPIO 26</text>
   <text class="t pin" x="428" y="598" text-anchor="end">GPIO 27</text>
-  <text class="t pin" x="428" y="634" text-anchor="end">GND</text>
   <text class="t pin" x="428" y="714" text-anchor="end">GPIO 21/22</text>
   <text class="t pin" x="262" y="713">GPIO 18</text>
   <text class="t pin" x="262" y="771">GPIO 14</text>
@@ -128,7 +127,7 @@
   <text class="t pin" x="845" y="526">#1 · CN2 18/17 — PB±</text>
   <text class="t pin" x="845" y="562">#2 · CN2 20/19 — PA±</text>
   <text class="t pin" x="845" y="598">#2 · CN2 18/17 — PB±</text>
-  <text class="t pin" x="845" y="634">both · CN2 16 — DGND · §5</text>
+  <text class="t pin" x="845" y="634">both · CN2 1 — GND</text>
   <text class="t pin" x="845" y="678">#1 · CN2 25 — Vref · §3</text>
   <text class="t pin" x="845" y="709">#2 · CN2 25 — Vref</text>
   <text class="t pin" x="845" y="740">both · CN2 13 — AGND, star</text>
@@ -150,7 +149,13 @@
   <path class="wire" marker-end="url(#a)" d="M 520 558 L 440 558"/>
   <path class="wire" marker-end="url(#a)" d="M 830 594 L 700 594"/>
   <path class="wire" marker-end="url(#a)" d="M 520 594 L 440 594"/>
-  <path class="wire" marker-end="url(#a)" d="M 830 630 L 440 630"/>
+  <!-- drive GND (CN2 1) fans out to every receiver, not to the ESP32 -->
+  <path class="wire" d="M 830 630 L 716 630 L 716 496"/>
+  <path class="wire" d="M 716 496 L 700 496 M 716 532 L 700 532 M 716 568 L 700 568 M 716 604 L 700 604"/>
+  <circle class="head" cx="716" cy="532" r="2.6"/>
+  <circle class="head" cx="716" cy="568" r="2.6"/>
+  <circle class="head" cx="716" cy="604" r="2.6"/>
+  <text class="t tiny" x="722" y="646">GND to each receiver</text>
 
   <path class="wire" marker-end="url(#a)" d="M 440 710 L 520 710"/>
   <path class="wire" marker-end="url(#a)" d="M 700 674 L 830 674"/>

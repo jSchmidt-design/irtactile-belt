@@ -246,9 +246,9 @@ it is a 1× (not 4×) decode.
 |---|---|---|
 | **20 / 19** | `PA+` / `PA−` | **yes** → PCNT A input |
 | **18 / 17** | `PB+` / `PB−` | **yes** → PCNT B input |
-| 15 / 14 | `PZ+` / `PZ−`, index | no |
+| 15 / 16 | `PZ+` / `PZ−`, index | no |
 | 22 | `OZ`, Z open collector | no |
-| **16** | `GND` (`DGND`) | **yes** |
+| **1** | `GND` (`DGND`) | **yes** |
 
 ### Differential receivers: RS-485/TTL modules
 
@@ -268,15 +268,15 @@ easier to source than a dedicated `AM26LS32`.
 | 3 | drive #2 `PA+` (20) / `PA−` (19) | GPIO 26 | ch2 A |
 | 4 | drive #2 `PB+` (18) / `PB−` (17) | GPIO 27 | ch2 B |
 
-Line side (three-way terminal, bottom edge): `接大地` (earth) → **controller
-GND**, `B−` → `PA−`/`PB−`, `A+` → `PA+`/`PB+`. Earth goes to controller ground
-rather than chassis PE so the receiver's common-mode reference sits on the same
-node as `DGND` and the ESP32; an RS-485 receiver's inputs must stay inside the
-common-mode window relative to its own ground.
+Line side (three-way terminal, bottom edge, input from the drive): `接大地`
+(earth) → **drive `CN2` pin 1 `GND`**, `B−` → `PA−`/`PB−`, `A+` → `PA+`/`PB+`.
+Earth goes to the drive's pulse-output ground rather than chassis PE, so each
+pair arrives together with its own reference; an RS-485 receiver's inputs must
+stay inside the common-mode window relative to its ground.
 
-Logic side (four-way header, top edge): `GND` → ESP32 GND (common with drive
-`DGND`), `RXD` → the GPIO above, `TXD` → **not connected**, `VCC` → **3.3 V from
-the devkit's 3V3 rail**.
+Logic side (four-way header, top edge, output to the ESP32): `GND` → **ESP32
+GND, on the 3.3 V side**, `RXD` → the GPIO above, `TXD` → **not connected**,
+`VCC` → **3.3 V from the devkit's 3V3 rail**.
 
 Each module carries ~120 Ω termination across `A`/`B`, TVS diodes and resettable
 fuses on the line side. Each pair is point-to-point, so one 120 Ω per pair is
@@ -303,7 +303,6 @@ terminates.** A termination enabled at the drive as well would halve the load.
 | GPIO 5 | ch1 **B** (direction) | B **low ⇒ count down**, high ⇒ up |
 | GPIO 26 | ch2 **A** (pulse) | unit 1, rising edge = 1 count |
 | GPIO 27 | ch2 **B** (direction) | **mirrored:** B low ⇒ **up**, high ⇒ down |
-| GND | common | module `GND` + drive `DGND` (pin 16) |
 
 Nothing between the drive and the GPIO inverts polarity, so the PCNT direction
 modes in `Counter.h` describe the as-built behaviour. If a counter ever reads
@@ -366,6 +365,7 @@ reach 32767 counts. Firmware README bench step 8 answers it by watching
 | Drive mains | 220 V into `L1`/`L2`/`L3` + `PE`; **TBD: single or three phase, filter/breaker** |
 | Motor cabling | `U`/`V`/`W` + `PE`; **TBD: cable type, gland/shield termination** |
 | Motor encoder cabling | `CN3` drive ↔ motor, 15-way; **TBD: supplied cable or made up?** |
+| ESP32 ground | **two `GND` wires to the common ground**: one runs with the 5 V rail (relay coils, pin 9, GP8413), one with the 3.3 V rail (relay inputs, RS-485 receivers) |
 | Ground topology | the enable path is opto-isolated at the drive; the **analog command is not**: the GP8413 ground and both drives' `AGND` are one shared net (section 3). Star point TBD. |
 | Shielding, earth bonding, fusing | TBD |
 | E-stop / kill chain | safety switch in the 3.3 V relay-input supply (section 4); **TBD: where it is mounted** |
@@ -403,9 +403,16 @@ From the drive's *"Speed, torque control wiring diagram"*. **Bold = used.**
 | **13** | `AGND` | analog ground | **← DAC GND** |
 | **20 / 19** | `PA+` / `PA−` | A phase pulse output | **→ PCNT A** |
 | **18 / 17** | `PB+` / `PB−` | B phase pulse output | **→ PCNT B** |
-| 15 / 14 | `PZ+` / `PZ−` | Z phase (index) pulse output | |
+| 15 / 16 | `PZ+` / `PZ−` | Z phase (index) pulse output | |
 | 22 | `OZ` | Z open-collector output | |
-| **16** | `GND` (`DGND`) | pulse output common | **→ ESP32 GND** |
+| **1** | `GND` (`DGND`) | pulse output common | **→ each RS-485 receiver's line-side earth** |
+| 2 | `PV` | open-collector power for the pulse command inputs | |
+| 3 / 14 | `PP+` / `PP−` | pulse command input (position mode) | |
+| 4 / 5 | `PD+` / `PD−` | direction command input (position mode) | |
+
+Pins 2–5 and 14 are the position-mode command inputs and do nothing in torque
+mode. **Pin 16 is `PZ−`, a line-driver output, not ground**: the encoder
+receivers' ground goes to pin 1.
 
 Each `SigIn` has a **5 kΩ** series resistor into its optocoupler; `Vref` enters
 through **10 kΩ** into an op-amp with a 10 kΩ leg to analog ground.
